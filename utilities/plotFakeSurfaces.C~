@@ -1,0 +1,873 @@
+#include <iostream>
+#include <fstream>
+#include "TFile.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TMath.h"
+#include "TRandom.h"
+#include "TCanvas.h"
+#include "TH2.h"
+#include "TGraph.h"
+#include "TStyle.h"
+#include "TMarker.h"
+#include "TLegend.h"
+
+
+#include "src/paramFuncs.h"
+TH2D *marginaliseOverHists(TH2D *inHists, Int_t numHists, char *histName);
+void subtractMinimum(TH2D*histCombi);
+TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) ;
+Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue);
+
+int getNiceColour(int index)
+{
+  if(index>10) return index;
+  Int_t niceColours[11]={kAzure+2,kRed+1,kGreen+1,kMagenta+1,kCyan+1,kOrange+2,kGreen-2,12,40,20,41};
+  return niceColours[index];
+}
+
+
+
+Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t x)
+{
+  return ((y2 - y1)* ((x - x1) / (x2-x1)) + y1);
+}
+
+Double_t simpleBilinearInterpolate(Double_t x[2], Double_t y[2], Double_t z[4], Double_t xp, Double_t yp) 
+{
+  //Here we have four points x[0],y[0] = z[0]
+  //Here we have four points x[0],y[1] = z[1]
+  //Here we have four points x[1],y[0] = z[2]
+  //Here we have four points x[1],y[1] = z[3]
+
+
+  Double_t a=z[0]*(x[1]-xp)*(y[1]-yp);
+  Double_t b=z[2]*(xp-x[0])*(y[1]-yp);
+  Double_t c=z[1]*(x[1]-xp)*(yp-y[0]);
+  Double_t d=z[3]*(xp-x[0])*(yp-y[0]);
+
+  return (a+b+c+d)/((x[1]-x[0])*(y[1]-y[0]));  
+}
+
+
+
+
+void plotFakeSurfaces(int fakeDmBin, int fakeT23bin,int fakeT13Bin, int fakeDeltaBin, int plotT13Bin, int plotDeltaBin)
+{
+   TH1::AddDirectory(kFALSE);
+   
+   Double_t trueDm=1e3*getDeltaM2(fakeDmBin);
+   Double_t trueT23=getT23(fakeT23bin);
+   
+
+  gStyle->SetOptStat(0);
+  //   gStyle->SetOptTitle(0);
+  char histName[180];
+  char fileName[180];
+  char canName[180];
+  
+  //  const char *fileTag[10]={"runi","runii","runiii","runiv","runv","runvi","runvii","runviii","runix","runx"};
+
+  const char *runNameArray[11]={"run1","run2","run3","run4","run5","run6","run7","run8","run9","run10","minosPlus"};
+
+  const char *histNameArray[6]={"histEnergyNQ","histEnergyPQ","histEnergyNC","histEnergyNCTrack","histEnergyNQRHC","histEnergyPQRHC"};
+  //  const char *predHistNameArray[4]={"histPredNQ","histPredPQ","histPredNC","histPredNCTrack"};
+  //  const char *fileTypeTag[3]={"main","nue","tau"};
+  //  const char *potFileTypeTag[3]={"","Nue","Tau"};
+  //  Int_t doRun[10]={1,1,1,1,1,1,1,0,1,1};
+  Int_t doRun[11]={1,1,1,1,0,0,0,0,0,0,1};
+  Int_t isRHC[11]={0,0,0,1,0,0,1,0,1,0,0};
+
+
+
+  Int_t numExps=1000;
+
+  Double_t llArray[4][1000]={0};
+  Double_t t23Array[4][1000]={0};
+  Double_t dm2Array[4][1000]={0};
+
+  Double_t llArrayTot[1000]={0};
+  Double_t llArrayInv[1000]={0};
+  Double_t llArrayNorm[1000]={0};
+  Double_t t23ArrayTot[1000]={0};
+  Double_t dm2ArrayTot[1000]={0};
+  Double_t t23ArrayNorm[1000]={0};
+  Double_t dm2ArrayNorm[1000]={0};
+  Double_t t23ArrayInv[1000]={0};
+  Double_t dm2ArrayInv[1000]={0};
+
+  Double_t llArrayPQNQ[1000]={0};
+  Double_t t23ArrayPQNQ[1000]={0};
+  Double_t dm2ArrayPQNQ[1000]={0};
+
+  for(int exp=0;exp<numExps;exp++) {
+    llArrayTot[exp]=-1;
+    llArrayNorm[exp]=-1;
+    llArrayInv[exp]=-1;
+    llArrayPQNQ[exp]=-1;
+    for(int j=0;j<4;j++) {
+      llArray[j][exp]=-1;
+    }
+  }
+
+  TFile *fpInRun[11]={0};
+
+  //Loop over runs
+  for(int runInd=0;runInd<11;runInd++) {
+    if(!doRun[runInd]) continue;
+
+    sprintf(fileName,"fakeSurfaces/fakeSurface_%s_exps_%d_%d_%d_%d_%d.root",runNameArray[runInd],numExps,fakeDmBin,fakeT23bin,fakeT13Bin,fakeDeltaBin);
+    fpInRun[runInd] = new TFile(fileName,"OLD");
+    if(!fpInRun[runInd]) {
+      std::cerr << "Can not open " << fileName << "\n";
+      continue;
+    }
+  }
+
+
+  //Only have histograms averaged over the runs
+  sprintf(histName,"histTotalNorm");
+  TH2D *histTotalNorm = getNewNormalHistogram(histName);
+
+  sprintf(histName,"histNQPQNorm");
+  TH2D *histNQPQNorm = getNewNormalHistogram(histName);
+
+  sprintf(histName,"histJustFHCNorm");
+  TH2D *histJustFHCNorm = getNewNormalHistogram(histName);
+
+  sprintf(histName,"histJustRHCNorm");
+  TH2D *histJustRHCNorm = getNewNormalHistogram(histName);
+
+  //This is one a histogram per histType
+  TH2D *histFourNorm[6];
+  for(int histType=0;histType<6;histType++) {
+    sprintf(histName,"histFourNorm_%s",histNameArray[histType]);
+    histFourNorm[histType] = getNewNormalHistogram(histName);
+           
+  }
+
+
+  for(int exp=0;exp<numExps;exp++) {
+    std::cerr << "#";
+    TH2D *histOneExpNormSub[MAX_T13_INDEX][MAX_DELTA_INDEX]={{0}};
+    TH2D *histOneExpPQNQNormSub[MAX_T13_INDEX][MAX_DELTA_INDEX]={{0}};
+    for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+      for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	sprintf(histName,"histOneExpNormSub_%d_%d",t13i,deltai);
+	histOneExpNormSub[t13i][deltai]=getNewNormalHistogram(histName);
+	sprintf(histName,"histOneExpPQNQNormSub_%d_%d",t13i,deltai);
+	histOneExpPQNQNormSub[t13i][deltai]=getNewNormalHistogram(histName);
+      }
+    }
+    
+    for(int histType=0;histType<4;histType++) {
+      TH2D *histNormalSub[MAX_T13_INDEX][MAX_DELTA_INDEX]={{0}};
+      for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+	for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	  sprintf(histName,"histNormalSub_%d_%d",t13i,deltai);
+	  histNormalSub[t13i][deltai]=getNewNormalHistogram(histName);
+	}
+      }
+      
+      for(int runInd=0;runInd<11;runInd++) {
+	if(!doRun[runInd]) continue;
+	for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+	  for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	    sprintf(histName,"exp%d/histNormal_%s_%d_%d_%d",exp,histNameArray[histType],exp,t13i,deltai);
+	    TH2D *histTemp = (TH2D*) fpInRun[runInd]->Get(histName);
+	    histNormalSub[t13i][deltai]->Add(histTemp);
+	    histOneExpNormSub[t13i][deltai]->Add(histTemp);
+	    if(histType<2) {
+	      histOneExpPQNQNormSub[t13i][deltai]->Add(histTemp);
+	    }
+	    delete histTemp;
+	  }
+	}
+      }
+      //Now make the marginalised histType histograms per run
+      TH2D *histNormal = marginaliseOverHists((TH2D*)histNormalSub,MAX_T13_INDEX*MAX_DELTA_INDEX,"histNormal");
+      
+      //The best fit point for this one histType
+      Int_t minGlobBin=histNormal->GetMinimumBin();
+      Double_t minLL=histNormal->GetMinimum();//BinContent(minGlobBin);
+      
+      if(minLL<llArray[histType][exp] || llArray[histType][exp]<0) {
+	Int_t minBinX,minBinY,minBinZ;
+	histNormal->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+	Double_t minT23=histNormal->GetXaxis()->GetBinCenter(minBinX);
+	Double_t minDm2=histNormal->GetYaxis()->GetBinCenter(minBinY);
+	
+	//	 std::cout <<  minT23 << "\t" << minDm2 << "\n";
+	t23Array[histType][exp]=minT23;
+	dm2Array[histType][exp]=minDm2;
+	llArray[histType][exp]=minLL;
+      }
+
+      
+      if(histType==0) {
+	if(isRHC[runInd]) 
+	  histSumNorm[runInd][4]->Add(histNormal);
+	else 
+	  histSumNorm[runInd][histType]->Add(histNormal);
+      }
+      else if(histType==1) {
+	if(isRHC[runInd]) 
+	  histSumNorm[runInd][5]->Add(histNormal);
+	else 
+	  histSumNorm[runInd][histType]->Add(histNormal);
+      }
+      else {
+	histSumNorm[runInd][histType]->Add(histNormal);
+      }
+
+
+    }
+
+    //Now make the marginalised experiment histograms
+    TH2D *histOneExpNorm = marginaliseOverHists((TH2D*)histOneExpNormSub,MAX_T13_INDEX*MAX_DELTA_INDEX,"histOneExpNorm");
+    TH2D *histOneExpPQNQNorm =marginaliseOverHists((TH2D*)histOneExpPQNQNormSub,MAX_T13_INDEX*MAX_DELTA_INDEX,"histOneExpPQNQNorm");
+  
+    for(int runInd=0;runInd<11;runInd++) {
+      if(!doRun[runInd]) continue;
+
+      for(int histType=0;histType<4;histType++) {
+	sprintf(histName,"exp%d/histNormal_%s_%d_%d_%d",exp,histNameArray[histType],exp,plotT13Bin,plotDeltaBin);
+	TH2D *histNormal = (TH2D*) fpInRun[runInd]->Get(histName);
+
+
+	 
+
+	histAllNorm[runInd]->Add(histNormal);
+
+	if(isRHC[runInd]) histRunJustRHCNorm[runInd]->Add(histNormal);
+	else histRunJustFHCNorm[runInd]->Add(histNormal);
+
+	if(histType<2) {
+	  histRunNQPQNorm[runInd]->Add(histNormal);
+	  histOneExpPQNQNorm->Add(histNormal);
+	}
+
+	delete histNormal;
+      }
+    }
+  
+    Double_t minLL=histOneExpNorm->GetMinimum();
+    Int_t minGlobBin=histOneExpNorm->GetMinimumBin();
+    Int_t minBinX,minBinY,minBinZ;
+    histOneExpNorm->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+    Double_t minT23=histOneExpNorm->GetXaxis()->GetBinCenter(minBinX);
+    Double_t minDm2=histOneExpNorm->GetYaxis()->GetBinCenter(minBinY);
+    
+
+    if(llArrayTot[exp]>minLL || llArrayTot[exp]<0) {
+      t23ArrayTot[exp]=minT23;
+      dm2ArrayTot[exp]=minDm2;
+      llArrayTot[exp]=minLL;
+    }
+
+    if(llArrayNorm[exp]>minLL || llArrayNorm[exp]<0) {
+      t23ArrayNorm[exp]=minT23;
+      dm2ArrayNorm[exp]=minDm2;
+      llArrayNorm[exp]=minLL;
+    }
+
+    {
+      Double_t minLL=histOneExpPQNQNorm->GetMinimum();
+      Int_t minGlobBin=histOneExpPQNQNorm->GetMinimumBin();
+      Int_t minBinX,minBinY,minBinZ;
+      histOneExpPQNQNorm->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+      Double_t minT23=histOneExpPQNQNorm->GetXaxis()->GetBinCenter(minBinX);
+      Double_t minDm2=histOneExpPQNQNorm->GetYaxis()->GetBinCenter(minBinY);
+      
+      //	 std::cout <<  minT23 << "\t" << minDm2 << "\n";
+      if(minLL<llArrayPQNQ[exp] || llArrayPQNQ[exp]<0) {
+	t23ArrayPQNQ[exp]=minT23;
+	dm2ArrayPQNQ[exp]=minDm2;
+	llArrayPQNQ[exp]=minLL;
+      }
+    }
+    delete histOneExpNorm;
+    delete histOneExpPQNQNorm;
+  }
+  std::cerr << "\n";
+
+  for(int runInd=0;runInd<11;runInd++) {
+    if(!doRun[runInd]) continue;
+    histTotalNorm->Add(histAllNorm[runInd]);
+    histNQPQNorm->Add(histRunNQPQNorm[runInd]);
+    histJustFHCNorm->Add(histRunJustFHCNorm[runInd]);
+    histJustRHCNorm->Add(histRunJustRHCNorm[runInd]);
+    for(int histType=0;histType<6;histType++) {
+      histFourNorm[histType]->Add(histSumNorm[runInd][histType]);
+    }
+  }
+      
+
+  histTotalNorm->Scale(1./(numExps));
+  //  histTotalNorm->Scale(5);
+  subtractMinimum(histTotalNorm);
+  histNQPQNorm->Scale(1./numExps);
+  histJustFHCNorm->Scale(1./numExps);
+  histJustRHCNorm->Scale(1./numExps);
+  subtractMinimum(histNQPQNorm);
+  subtractMinimum(histJustRHCNorm);
+  subtractMinimum(histJustFHCNorm);
+  for(int histType=0;histType<6;histType++) {	 
+    histFourNorm[histType]->Scale(1./numExps);
+    subtractMinimum(histFourNorm[histType]);
+  }
+  //Finish normal
+
+
+
+
+
+  // Inverted histograms
+  TH2D *histSumInv[11][6]={{0}};
+  TH2D *histAllInv[11]={0};
+  TH2D *histRunNQPQInv[11]={0};
+
+  //  TH2D *histRun
+  TH2D *histRunJustFHCInv[11]={0};
+  TH2D *histRunJustRHCInv[11]={0};
+  
+  
+  sprintf(histName,"histTotalInv");
+  TH2D *histTotalInv = getNewInvertedHistogram(histName);
+
+  sprintf(histName,"histNQPQInv");
+  TH2D *histNQPQInv = getNewInvertedHistogram(histName);
+
+  sprintf(histName,"histJustFHCInv");
+  TH2D *histJustFHCInv = getNewInvertedHistogram(histName);
+
+  sprintf(histName,"histJustRHCInv");
+  TH2D *histJustRHCInv = getNewInvertedHistogram(histName);
+
+  TH2D *histSixInv[6];
+  for(int histType=0;histType<6;histType++) {
+    sprintf(histName,"histSixInv_%s",histNameArray[histType]);
+    histSixInv[histType] = getNewInvertedHistogram(histName);
+           
+  }
+
+
+  //Loop over runs
+  for(int runInd=0;runInd<11;runInd++) {
+    if(!doRun[runInd]) continue;
+    std::cerr << "*";
+
+
+    sprintf(histName,"histAllRunInv%d",runInd+1);
+    histAllInv[runInd] = getNewInvertedHistogram(histName);
+
+    sprintf(histName,"histNQPQRunInv%d",runInd+1);
+    histRunNQPQInv[runInd] = getNewInvertedHistogram(histName);
+
+    sprintf(histName,"histJustFHCRunInv%d",runInd+1);
+    histRunJustFHCInv[runInd] = getNewInvertedHistogram(histName);
+
+
+    sprintf(histName,"histJustRHCRunInv%d",runInd+1);
+    histRunJustRHCInv[runInd] = getNewInvertedHistogram(histName);
+  
+        
+    for(int histType=0;histType<6;histType++) {	  	
+      
+      sprintf(histName,"histSumRunInv%d_%s",runInd+1,histNameArray[histType]);
+      histSumInv[runInd][histType] = getNewInvertedHistogram(histName);
+              
+    }
+  }
+  std::cerr << "\n";
+
+  for(int exp=0;exp<numExps;exp++) {
+    std::cerr << "#";
+    TH2D *histOneExpInv = getNewInvertedHistogram("histOneExpInv");
+    TH2D *histOneExpPQNQInv =getNewInvertedHistogram("histOneExpPQNQInv");
+    for(int runInd=0;runInd<11;runInd++) {
+      if(!doRun[runInd]) continue;
+      for(int histType=0;histType<4;histType++) {
+	sprintf(histName,"exp%d/histInverted_%s_%d_%d_%d",exp,histNameArray[histType],exp,plotT13Bin,plotDeltaBin);
+	TH2D *histInv = (TH2D*) fpInRun[runInd]->Get(histName);
+	histOneExpInv->Add(histInv);
+	Int_t minGlobBin=histInv->GetMinimumBin();
+	Double_t minLL=histInv->GetMinimum();//BinContent(minGlobBin);
+
+	if(minLL<llArray[histType][exp] || llArray[histType][exp]<0) {
+	  Int_t minBinX,minBinY,minBinZ;
+	  histInv->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+	  Double_t minT23=histInv->GetXaxis()->GetBinCenter(minBinX);
+	  Double_t minDm2=histInv->GetYaxis()->GetBinCenter(minBinY);
+	  
+	  //	 std::cout <<  minT23 << "\t" << minDm2 << "\n";
+	  t23Array[histType][exp]=minT23;
+	  dm2Array[histType][exp]=minDm2;
+	  llArray[histType][exp]=minLL;
+	}
+	 
+	if(histType==0) {
+	  if(isRHC[runInd]) 
+	    histSumInv[runInd][4]->Add(histInv);
+	  else 
+	    histSumInv[runInd][histType]->Add(histInv);
+	}
+	else if(histType==1) {
+	  if(isRHC[runInd]) 
+	    histSumInv[runInd][5]->Add(histInv);
+	  else 
+	    histSumInv[runInd][histType]->Add(histInv);
+	}
+	else {
+	  histSumInv[runInd][histType]->Add(histInv);
+	}
+
+	histAllInv[runInd]->Add(histInv);
+
+	if(isRHC[runInd]) histRunJustRHCInv[runInd]->Add(histInv);
+	else histRunJustFHCInv[runInd]->Add(histInv);
+
+	if(histType<2) {
+	  histRunNQPQInv[runInd]->Add(histInv);
+	  histOneExpPQNQInv->Add(histInv);
+	}
+
+	delete histInv;
+      }
+    }
+  
+    Double_t minLL=histOneExpInv->GetMinimum();
+    Int_t minGlobBin=histOneExpInv->GetMinimumBin();
+    Int_t minBinX,minBinY,minBinZ;
+    histOneExpInv->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+    Double_t minT23=histOneExpInv->GetXaxis()->GetBinCenter(minBinX);
+    Double_t minDm2=histOneExpInv->GetYaxis()->GetBinCenter(minBinY);
+    
+    //	 std::cout <<  minT23 << "\t" << minDm2 << "\n";
+    if(llArrayTot[exp]>minLL || llArrayTot[exp]<0) {
+      t23ArrayTot[exp]=minT23;
+      dm2ArrayTot[exp]=minDm2;
+      llArrayTot[exp]=minLL;
+    }
+    if(llArrayInv[exp]>minLL || llArrayInv[exp]<0) {
+      t23ArrayInv[exp]=minT23;
+      dm2ArrayInv[exp]=minDm2;
+      llArrayInv[exp]=minLL;
+    }
+    {
+      Double_t minLL=histOneExpPQNQInv->GetMinimum();
+      Int_t minGlobBin=histOneExpPQNQInv->GetMinimumBin();
+      Int_t minBinX,minBinY,minBinZ;
+      histOneExpPQNQInv->GetBinXYZ(minGlobBin,minBinX,minBinY,minBinZ);
+      Double_t minT23=histOneExpPQNQInv->GetXaxis()->GetBinCenter(minBinX);
+      Double_t minDm2=histOneExpPQNQInv->GetYaxis()->GetBinCenter(minBinY);
+      
+      //	 std::cout <<  minT23 << "\t" << minDm2 << "\n";
+      if(minLL<llArrayPQNQ[exp] || llArrayPQNQ[exp]<0) {
+	t23ArrayPQNQ[exp]=minT23;
+	dm2ArrayPQNQ[exp]=minDm2;
+	llArrayPQNQ[exp]=minLL;
+      }
+    }
+    delete histOneExpInv;
+    delete histOneExpPQNQInv;
+  }
+  std::cerr << "\n";
+
+  for(int runInd=0;runInd<11;runInd++) {
+    if(!doRun[runInd]) continue;
+    histTotalInv->Add(histAllInv[runInd]);
+    histNQPQInv->Add(histRunNQPQInv[runInd]);
+    histJustFHCInv->Add(histRunJustFHCInv[runInd]);
+    histJustRHCInv->Add(histRunJustRHCInv[runInd]);
+    for(int histType=0;histType<6;histType++) {
+      histSixInv[histType]->Add(histSumInv[runInd][histType]);
+    }
+  }
+      
+
+  histTotalInv->Scale(1./(numExps));
+  subtractMinimum(histTotalInv);
+  histNQPQInv->Scale(1./numExps);
+  histJustFHCInv->Scale(1./numExps);
+  histJustRHCInv->Scale(1./numExps);
+  subtractMinimum(histNQPQInv);
+  subtractMinimum(histJustRHCInv);
+  subtractMinimum(histJustFHCInv);
+  for(int histType=0;histType<6;histType++) {	 
+    histSixInv[histType]->Scale(1./numExps);
+    subtractMinimum(histSixInv[histType]);
+  }
+  //Finish Inverted
+
+
+
+
+  Int_t quadCountBest[4]={0};
+  Int_t quadCountSecond[4]={0};
+  for(int exp=0;exp<numExps;exp++) {
+    int baseTot=0;
+    //    std::cout << exp << "\t" << llArrayTot[exp] << "\t" << llArrayNorm[exp] << "\t" << llArrayInv[exp] << "\n";
+   
+
+
+    if(t23ArrayTot[exp]>TMath::PiOver4()) {
+      baseTot=2;  
+    }
+    if(dm2ArrayTot[exp]<0) {
+      baseTot++;
+    }
+
+    if(llArrayNorm[exp] < llArrayInv[exp]) {
+      std::cout << exp << "\t" << dm2ArrayTot[exp] << "\t" << dm2ArrayInv[exp] << "\t" << baseTot << "\n";
+    }
+
+    quadCountBest[baseTot]++;
+
+    int basePQNQ=0;
+    if(t23ArrayPQNQ[exp]>TMath::PiOver4()) {
+      basePQNQ=2;  
+    }
+    if(dm2ArrayPQNQ[exp]<0) {
+      basePQNQ++;
+    }
+    quadCountSecond[basePQNQ]++;
+  }
+  
+  char *quadLabel[4]={"Normal theta23<=pi/4","Inverted theta23<=pi/4",
+		      "Normal theta23>pi/4","Inverted theta23>pi/4"};
+  
+  std::cout << trueT23 << "\t" << trueDm << "\n";
+  std::cout << "Best\n";
+  for(int i=0;i<4;i++) {
+    std::cout << quadLabel[i] << "\t" << quadCountBest[i] << "\n";
+  }
+  std::cout << "Second\n";
+  for(int i=0;i<4;i++) {
+    std::cout << quadLabel[i] << "\t" << quadCountSecond[i] << "\n";
+  }
+
+  char textName[180];
+  sprintf(textName,"countSuccess_%d_%d.txt",fakeDmBin,fakeT23bin);
+  ofstream OutText(textName);
+
+  OutText << trueT23 << "\t" << trueDm << "\n";
+  OutText << "Best\n";
+  for(int i=0;i<4;i++) {
+    OutText << quadLabel[i] << "\t" << quadCountBest[i] << "\n";
+  }
+  OutText << "Second\n";
+  for(int i=0;i<4;i++) {
+    OutText << quadLabel[i] << "\t" << quadCountSecond[i] << "\n";
+  }
+  OutText.close();
+
+
+
+
+
+
+
+  char *plotTitle[6]={"FHC CC-Selected (q<0)",
+		      "FHC CC-Selected (q>0)",
+		      "RHC CC-Selected (q<0)",
+		      "RHC CC-Selected (q>0)",
+		      "NC-Selected (w/o track)",
+		      "NC-Selected (w/ track)"};
+  int plotInd[6]={0,1,4,5,2,3};
+
+  sprintf(canName,"canSurface");
+  TCanvas *canSurface  = new TCanvas(canName,canName,1200,1200);
+  canSurface->Divide(2,3);
+  for(int canInd=0;canInd<6;canInd++) {	 
+    canSurface->cd(canInd+1); 
+    Int_t histInd=plotInd[canInd];
+    std::cout << canInd << "\t" << histInd << "\n";
+    Double_t minLL=histFourNorm[histInd]->GetMinimum();
+    histFourNorm[histInd]->SetMaximum(minLL+10);
+    histFourNorm[histInd]->GetXaxis()->SetTitle("#theta_{23} (radians)");
+    histFourNorm[histInd]->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+    histFourNorm[histInd]->GetZaxis()->SetTitle("-2 #Delta LL");
+    histFourNorm[histInd]->SetTitle(plotTitle[canInd]);
+    histFourNorm[histInd]->Draw("colz");     
+    //      TGraph 
+  }   
+
+
+  
+  sprintf(canName,"canAll");
+  TCanvas *canAll  = new TCanvas(canName,canName,800,800);
+  canAll->Divide(1,2);
+  canAll->cd(1);
+  histTotalNorm->SetMaximum(10);
+  histTotalNorm->SetTitle("All Events");
+  histTotalNorm->Draw("colz");    
+  canAll->cd(2);
+  histNQPQNorm->SetMaximum(10);
+  histNQPQNorm->SetTitle("Just CC Selected Events");
+  histNQPQNorm->Draw("colz");
+  
+  
+  sprintf(canName,"canCont");
+  TCanvas *canCont  = new TCanvas(canName,canName,800,800);
+  canCont->Divide(1,2,0.01,0.01);
+  canCont->cd(1);
+  //  gPad->SetLeftMargin(0.15);  
+  TH2D *histContNormAll90 = (TH2D*) histTotalNorm->Clone("histContNormAll90");
+  TH2D *histContInvAll90 = (TH2D*) histTotalInv->Clone("histContInvAll90");
+  histContNormAll90->SetTitle("");
+  histContInvAll90->SetTitle("");
+  Double_t val90All=histContNormAll90->GetMinimum()+4.61;
+  if(histContInvAll90->GetMinimum()<histContNormAll90->GetMinimum())
+     val90All=histContInvAll90->GetMinimum()+4.61;
+  
+  histContNormAll90->SetContour(1,&val90All);
+  histContNormAll90->SetLineColor(1);
+  histContNormAll90->SetLineWidth(3);   
+  histContNormAll90->GetXaxis()->SetTitle("#theta_{23} (radians)");
+  histContNormAll90->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+
+  histContInvAll90->SetContour(1,&val90All);
+  histContInvAll90->SetLineColor(1);
+  histContInvAll90->SetLineWidth(3);   
+  histContInvAll90->GetXaxis()->SetTitle("#theta_{23} (radians)");
+  histContInvAll90->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+
+  //    histContNormAll90->GetYaxis()->SetTitleOffset(1.7);
+  //    histContNormAll90->GetYaxis()->SetRangeUser(2,3);
+  histContNormAll90->Draw("cont3");
+  //   TH2D *histContNQ90 = (TH2D*) histFourNorm[0]->Clone("histContNQ90");
+  //   Double_t val90NQ=histContNQ90->GetMinimum()+4.61;
+  //   histContNQ90->SetContour(1,&val90NQ);
+  //   histContNQ90->SetLineColor(getNiceColour(0));
+  //   histContNQ90->SetLineWidth(3);
+  //   histContNQ90->Draw("cont3 same");
+
+  TH2D *histContNormNQPQ90 = (TH2D*) histNQPQNorm->Clone("histContNormNQPQ90");
+  TH2D *histContInvNQPQ90 = (TH2D*) histNQPQInv->Clone("histContInvNQPQ90");
+  Double_t val90NQPQ=histContNormNQPQ90->GetMinimum()+4.61;
+  if(histContInvNQPQ90->GetMinimum()<histContNormNQPQ90->GetMinimum()) 
+     val90NQPQ=histContInvNQPQ90->GetMinimum()+4.61;
+
+  histContNormNQPQ90->SetContour(1,&val90NQPQ);
+  histContNormNQPQ90->SetLineColor(getNiceColour(0));
+  histContNormNQPQ90->SetLineWidth(3);
+  histContNormNQPQ90->Draw("cont3 same");
+
+
+  histContInvNQPQ90->SetContour(1,&val90NQPQ);
+  histContInvNQPQ90->SetLineColor(getNiceColour(0));
+  histContInvNQPQ90->SetLineWidth(3);
+
+
+
+  TH2D *histContNormJustFHC90 = (TH2D*) histJustFHCNorm->Clone("histContNormJustFHC90");
+  Double_t val90JustFHC=histContNormJustFHC90->GetMinimum()+4.61;
+
+  TH2D *histContInvJustFHC90 = (TH2D*) histJustFHCInv->Clone("histContInvJustFHC90");
+  if(histContInvJustFHC90->GetMinimum()<histContNormJustFHC90->GetMinimum())
+     val90JustFHC=histContInvJustFHC90->GetMinimum()+4.61;
+
+  histContNormJustFHC90->SetContour(1,&val90JustFHC);
+  histContNormJustFHC90->SetLineColor(getNiceColour(1));
+  histContNormJustFHC90->SetLineWidth(3);
+  //  histContNormJustFHC90->Draw("cont3 same");
+
+  histContInvJustFHC90->SetContour(1,&val90JustFHC);
+  histContInvJustFHC90->SetLineColor(getNiceColour(1));
+  histContInvJustFHC90->SetLineWidth(3);
+
+  
+  canCont->cd(1);
+  TGraph *grBest = new TGraph(numExps,t23ArrayTot,dm2ArrayTot);
+  grBest->SetMarkerStyle(29);
+  grBest->SetMarkerColor(kGreen+2);
+  grBest->DrawClone("p");
+
+  TGraph *grSecondBest = new TGraph(numExps,t23ArrayPQNQ,dm2ArrayPQNQ);
+  grSecondBest->SetMarkerStyle(22);
+  grSecondBest->SetMarkerColor(getNiceColour(0));
+  // grSecondBest->DrawClone("p");
+  
+
+  canCont->cd(2);
+
+  histContInvAll90->Draw("cont3");
+  histContInvNQPQ90->Draw("cont3 same");
+  histContInvNQPQ90->Draw("cont3 same");
+  grBest->DrawClone("p");
+  //  grSecondBest->DrawClone("p");
+  
+
+  TMarker *marky = new TMarker(trueT23,trueDm,29);
+  marky->SetMarkerColor(kRed+2);
+  marky->SetMarkerSize(2);
+  if(trueDm>0)
+    canCont->cd(1);
+  marky->Draw("same");
+
+  
+  canCont->cd(1);
+  TLegend *leggy = new TLegend(0.6,0.6,0.9,0.9);
+  leggy->SetFillColor(0);
+  leggy->SetFillStyle(0);
+  leggy->SetBorderSize(0);
+  //  leggy->AddEntry("blank","90% C.L.","l");
+  leggy->AddEntry(histContNormNQPQ90,"CC Selected (90%)","l");
+  leggy->AddEntry(histContNormAll90,"CC+NC Selected (90%)","l");
+  leggy->AddEntry(marky,"Input Values","p");
+  leggy->AddEntry(grBest,"Fake Best Fits","p");
+
+  //  leggy->AddEntry(histContNormJustFHC90,"No RHC","l");
+  leggy->Draw("same");
+
+  canCont->Update();
+  canCont->Modified();
+  sprintf(canName,"plots/canContAll_%d_%d_%d_%d_%d.pdf",numExps,fakeDmBin,fakeT23bin,plotT13Bin,plotDeltaBin);
+  canCont->Print(canName);
+
+
+  canSurface->Update();
+  canSurface->Modified();
+  sprintf(canName,"plots/canSurface_%d_%d_%d_%d_%d.pdf",numExps,fakeDmBin,fakeT23bin,plotT13Bin,plotDeltaBin);
+  canSurface->Print(canName);
+
+  canAll->Update();
+  canAll->Modified();
+  sprintf(canName,"plots/canAll_%d_%d_%d_%d_%d.pdf",numExps,fakeDmBin,fakeT23bin,plotT13Bin,plotDeltaBin);
+  canAll->Print(canName);
+    
+}
+
+
+TH2D *marginaliseOverHists(TH2D *inHists, Int_t numHists, char *histName)
+{  
+  if(numHists==0) return NULL;
+  TH2D *outHist=inHists[0]->Clone(histName);
+  Int_t numXbins=outHist->GetNbinsX();
+  Int_t numYbins=outHist->GetNbinsY();
+  
+  if(numHists>1) {
+    for(int binx=1;binx<=numXbins;binx++) {
+      for(int biny=1;biny<=numYbins;biny++) {
+	Double_t value=outHist->GetBinContent(binx,biny);
+	for(int i=1;i<numHists;i++) {
+	  Double_t other=inHists[i]->GetBinContent(binx,biny);
+	  if(other<value) {
+	    value=other;
+	  }
+	}
+	outHist->SetBinContent(binx,biny,value);
+	
+      }
+    }
+  }
+  return outHist;
+}
+
+
+
+TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) 
+{
+  
+  static Double_t lookupFirstTheta23[MAX_SIN2_INDEX]={0};
+  static Double_t lookupSecondTheta23[MAX_SIN2_INDEX]={0};
+  static int firstTime=1;
+
+  TH2D *histOut = new TH2D(histName,histName,
+			   MAX_SIN2_INDEX,MIN_SIN2-0.5*SIN2_STEP_SIZE,MIN_SIN2+(MAX_SIN2_INDEX-0.5)*SIN2_STEP_SIZE,
+			   MAX_DMI_INDEX,1e3*(MIN_DM2-0.5*DM2_STEP_SIZE),1e3*(MIN_DM2+(MAX_DMI_INDEX-0.5)*DM2_STEP_SIZE));
+  TAxis *histXaxis = histOut->GetXaxis();
+  //  TAxis *histYaxis = histOut->GetYaxis();
+  
+
+  //   Double_t aSliceBin[1000];
+  //   Double_t aSliceValue[1000];
+  //   Int_t testDmBin=77;
+  //   for(int sinBin=1;sinBin<=histInput->GetNbinsX();sinBin++) {    
+  //     aSliceBin[sinBin-1]=histXaxis->GetBinCenter(sinBin);
+  //     aSliceValue[sinBin-1]=histInput->GetBinContent(sinBin,testDmBin);
+
+  //   }
+  //   TCanvas *can = new TCanvas();
+  //   TGraph *grTest = new TGraph(histInput->GetNbinsX(),aSliceBin,aSliceValue);
+  //   grTest->Draw("alp");
+
+  //  std::cout << histOut << "\n";
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {    
+    if(firstTime) {
+      lookupFirstTheta23[sinBin-1]=getFirstT23(histXaxis->GetBinCenter(sinBin));
+      lookupSecondTheta23[sinBin-1]=getSecondT23(histXaxis->GetBinCenter(sinBin));      
+      //        std::cout << histXaxis->GetBinCenter(sinBin) << "\t" << lookupFirstTheta23[sinBin-1] << "\t" << lookupSecondTheta23[sinBin-1] << "\t" << histInput->GetXaxis()->GetBinCenter(getT23IFromT23(lookupFirstTheta23[sinBin-1])+1) << "\n" ;
+    }
+
+    //    Int_t firstBin=getT23IFromT23(lookupFirstTheta23[sinBin-1])+1;
+    //    Int_t secondBin=getT23IFromT23(lookupSecondTheta23[sinBin-1])+1;
+
+    for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
+      //       Double_t value1=histInput->GetBinContent(firstBin,dmBin);
+      //       Double_t value2=histInput->GetBinContent(secondBin,dmBin);
+      Double_t value1=th2dEval(histInput,lookupFirstTheta23[sinBin-1],histOut->GetYaxis()->GetBinCenter(dmBin));
+      Double_t value2=th2dEval(histInput,lookupSecondTheta23[sinBin-1],histOut->GetYaxis()->GetBinCenter(dmBin));
+
+      if(value2<value1) value1=value2;
+      histOut->SetBinContent(sinBin,dmBin,value1);
+       
+      //      std::cout << sinBin << "\t" << dmBin << "\t" << histXaxis->GetBinCenter(sinBin) << "\t" << histYaxis->GetBinCenter(dmBin) << "\n";
+    }
+  }
+  
+  firstTime=0;
+  return histOut;
+
+
+}
+
+
+Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue) {
+  Int_t xBin=histInput->GetXaxis()->FindBin(xValue);
+  Double_t xCentre=histInput->GetXaxis()->GetBinCenter(xBin);
+  Int_t xBin2=xBin+1;
+  if(xBin>=histInput->GetNbinsX() || xValue<xCentre) 
+    xBin2=xBin-1;
+  Double_t xCentre2=histInput->GetXaxis()->GetBinCenter(xBin2);
+  
+
+  Int_t yBin=histInput->GetYaxis()->FindBin(yValue);
+  Double_t yCentre=histInput->GetYaxis()->GetBinCenter(yBin);
+  Int_t yBin2=yBin+1;
+  if(yBin>=histInput->GetNbinsY() || yValue<yCentre) 
+    yBin2=yBin-1;
+  Double_t yCentre2=histInput->GetYaxis()->GetBinCenter(yBin2);
+
+  Double_t xInt[2]={xCentre,xCentre2};
+  Double_t yInt[2]={yCentre,yCentre2};
+  Double_t zVals[4]={histInput->GetBinContent(xBin,yBin),
+		     histInput->GetBinContent(xBin,yBin2),
+		     histInput->GetBinContent(xBin2,yBin),
+		     histInput->GetBinContent(xBin2,yBin2)};
+
+
+  return simpleBilinearInterpolate(xInt,yInt,zVals,xValue,yValue);
+
+}
+
+
+
+void subtractMinimum(TH2D*histCombi)
+{
+
+  Double_t minValue=1e9;
+  for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
+    for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {
+      if(histCombi->GetBinContent(binx,biny)<minValue)
+	minValue=histCombi->GetBinContent(binx,biny);
+    }    
+  }     
+  
+  for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
+    for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {
+      histCombi->SetBinContent(binx,biny,histCombi->GetBinContent(binx,biny)-minValue);
+    }
+  }
+}

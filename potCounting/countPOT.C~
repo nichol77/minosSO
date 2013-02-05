@@ -1,0 +1,19 @@
+
+void countPOT(char *inFile)
+{
+
+  char filename[180];
+  ifstream FileList(inFile);
+  Double_t totalPOT=0;
+  while(FileList >> filename) {
+    TFile fp(filename);
+    if(fp.Get("s")) {
+      //Tree exist
+      TH1F *hTotalPot = (TH1F*)fp.Get("hTotalPot");
+      totalPOT+=hTotalPot->Integral();      
+    }
+  }
+  std::cout << "\n\n" << totalPOT << "\n";
+
+
+}

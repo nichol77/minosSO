@@ -1,0 +1,458 @@
+#include <iostream>
+#include <fstream>
+#include "TFile.h"
+#include "TF1.h"
+#include "TH1.h"
+#include "TMath.h"
+#include "TRandom.h"
+#include "TCanvas.h"
+#include "TH2.h"
+#include "TGraph.h"
+#include "TStyle.h"
+#include "TMarker.h"
+#include "TLegend.h"
+
+#define NUM_EXPS 1000
+
+#include "src/paramFuncs.h"
+void subtractMinimum(TH2D*histCombi);
+TH2D *getNewHistogram(int normalOrInverted, char *histName);
+
+int getNiceColour(int index)
+{
+  if(index>10) return index;
+  Int_t niceColours[11]={kAzure+2,kRed+1,kGreen+1,kMagenta+1,kCyan+1,kOrange+2,kGreen-2,12,40,20,41};
+  return niceColours[index];
+}
+
+
+
+const char *histNameArray[4]={"histEnergyNQ","histEnergyPQ","histEnergyNC","histEnergyNCTrack"};//
+
+
+
+
+int main(int argc, char **argv) {
+
+ if(argc<5) {
+    std::cerr << "Usage\n\t" << argv[0] << " <dm bin> <t23 bin> <t13 bin> <delta bin> \n";
+    return -1;
+ }
+ int numExps=NUM_EXPS;
+ int fakeDmBin=atoi(argv[1]);
+ int fakeT23Bin=atoi(argv[2]);
+ int fakeT13Bin=atoi(argv[3]);
+ int fakeDeltaBin=atoi(argv[4]);  
+ int doMinosPlus=0;
+ if(argc>5) {
+   doMinosPlus=atoi(argv[5]);
+ }
+
+ 
+ 
+ Double_t trueDm=1e3*getDeltaM2(fakeDmBin);
+ Double_t trueT23=getT23(fakeT23Bin);
+ 
+ 
+ gStyle->SetOptStat(0);
+ //   gStyle->SetOptTitle(0);
+ char histName[180];
+ char fileName[180];
+ char canName[180];
+  
+
+ 
+ if(!doMinosPlus) {
+   sprintf(fileName,"finalSurfaces/finalPlotsMinosOnly_%d_%d_%d_%d.root",fakeDmBin,fakeT23Bin,fakeT13Bin,fakeDeltaBin);
+ }
+ else {
+   sprintf(fileName,"finalSurfaces/finalPlots_%d_%d_%d_%d.root",fakeDmBin,fakeT23Bin,fakeT13Bin,fakeDeltaBin);
+ }      
+ TFile *fpOut  = new TFile(fileName,"RECREATE");
+ 
+ 
+
+ //Only have histograms averaged over the runs
+ sprintf(histName,"histTotalNormal");
+ TH2D *histTotalNormal = getNewNormalHistogram(histName);
+ 
+ sprintf(histName,"histNQPQNormal");
+ TH2D *histNQPQNormal = getNewNormalHistogram(histName);
+ 
+ //This is one a histogram per histType
+ TH2D *histFourNormal[4];
+ for(int histType=0;histType<4;histType++) {
+   sprintf(histName,"histFourNormal_%s",histNameArray[histType]);
+    histFourNormal[histType] = getNewNormalHistogram(histName);           
+ }
+ 
+ 
+ //Only have histograms averaged over the runs
+ sprintf(histName,"histTotalInverted");
+ TH2D *histTotalInverted = getNewInvertedHistogram(histName);
+ 
+ sprintf(histName,"histNQPQInverted");
+ TH2D *histNQPQInverted = getNewInvertedHistogram(histName);
+ 
+ //This is one a histogram per histType
+ TH2D *histFourInverted[4];
+ for(int histType=0;histType<4;histType++) {
+   sprintf(histName,"histFourInverted_%s",histNameArray[histType]);
+    histFourInverted[histType] = getNewInvertedHistogram(histName);           
+ }
+
+ TH2D *histTotalNormalSub[MAX_T13_INDEX][MAX_DELTA_INDEX];
+ TH2D *histNQPQNormalSub[MAX_T13_INDEX][MAX_DELTA_INDEX];
+ TH2D *histTotalInvertedSub[MAX_T13_INDEX][MAX_DELTA_INDEX];
+ TH2D *histNQPQInvertedSub[MAX_T13_INDEX][MAX_DELTA_INDEX];
+ for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+    for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+       sprintf(histName,"histTotalNormalSub_%d_%d",t13i,deltai);
+       histTotalNormalSub[t13i][deltai]=getNewNormalHistogram(histName);
+       sprintf(histName,"histNQPQNormalSub_%d_%d",t13i,deltai);
+       histNQPQNormalSub[t13i][deltai]=getNewNormalHistogram(histName);
+
+       sprintf(histName,"histTotalInvertedSub_%d_%d",t13i,deltai);
+       histTotalInvertedSub[t13i][deltai]=getNewInvertedHistogram(histName);
+       sprintf(histName,"histNQPQInvertedSub_%d_%d",t13i,deltai);
+       histNQPQInvertedSub[t13i][deltai]=getNewInvertedHistogram(histName);
+ 
+    }
+ }
+ 
+ TH2D *histFull[4]={histTotalNormal,histNQPQNormal,histTotalInverted,histNQPQInverted};
+ TH2D **histFour[2]={histFourNormal,histFourInverted};
+ TH2D *histSub[4][MAX_T13_INDEX][MAX_DELTA_INDEX]={{{0}}};
+
+
+ for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+    for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+      histSub[0][t13i][deltai]=histTotalNormalSub[t13i][deltai];
+      histSub[1][t13i][deltai]=histNQPQNormalSub[t13i][deltai];
+      histSub[2][t13i][deltai]=histTotalInvertedSub[t13i][deltai];
+      histSub[3][t13i][deltai]=histNQPQInvertedSub[t13i][deltai];
+    }
+ }
+ 
+
+ Double_t t23ArrayTot[NUM_EXPS]={0};
+ Double_t dm2ArrayTot[NUM_EXPS]={0};
+ Double_t t23ArrayNQPQ[NUM_EXPS]={0};
+ Double_t dm2ArrayNQPQ[NUM_EXPS]={0};
+
+ Int_t numAdded=0;
+ //Loop over runs
+ for(int exp=0;exp<NUM_EXPS;exp+=100) {
+  
+   int firstExp=exp;
+   int lastExp=exp+99;
+   if(!doMinosPlus) {
+     sprintf(fileName,"fakeSurfaces/finalPlotsMinosOnly_exps%d_to_%d_%d_%d_%d_%d.root",firstExp,lastExp,fakeDmBin,fakeT23Bin,fakeT13Bin,fakeDeltaBin);
+   }
+   else {
+     sprintf(fileName,"fakeSurfaces/finalPlots_exps%d_to_%d_%d_%d_%d_%d.root",firstExp,lastExp,fakeDmBin,fakeT23Bin,fakeT13Bin,fakeDeltaBin);
+   }      
+   std::cout << fileName << "\n";
+   TFile fpIn(fileName,"OLD");
+   if(!fpIn.IsOpen()) {
+     std::cerr << "Can not open " << fileName << "\n";
+     continue;
+   }
+   numAdded++;
+
+
+   //First some graph fun
+   TGraph *grBest = (TGraph*) fpIn.Get("bestFitTotal");
+   if(grBest) {
+     for(int i=0;i<grBest->GetN();i++) {
+       t23ArrayTot[i+exp]=grBest->GetX()[i];
+       dm2ArrayTot[i+exp]=grBest->GetY()[i];
+     }
+     delete grBest;
+   }
+   TGraph *grSecond = (TGraph*) fpIn.Get("bestFitNQPQ");
+   if(grSecond) {
+     for(int i=0;i<grSecond->GetN();i++) {
+       t23ArrayNQPQ[i+exp]=grSecond->GetX()[i];
+       dm2ArrayNQPQ[i+exp]=grSecond->GetY()[i];
+     }
+     delete grSecond;
+   }
+
+
+
+   //Now add some histogram fun
+   for(int i=0;i<4;i++) {
+     TH2D *histTemp = (TH2D*)fpIn.Get(histFull[i]->GetName());
+     if(!histTemp) {
+       std::cerr << "Couldn't get " << i << "\t" << histFull[i]->GetName() << "\n";
+       continue;
+     }
+     histFull[i]->Add(histTemp);
+     delete histTemp;
+   }
+
+
+   for(int i=0;i<2;i++) {
+     for(int j=0;j<4;j++) {
+       TH2D *histTemp = (TH2D*)fpIn.Get(histFour[i][j]->GetName());
+       if(!histTemp) {
+	 std::cerr << "Couldn't get " << i << "\t" << histFour[i][j]->GetName() << "\n";
+	 continue;
+       }
+       histFour[i][j]->Add(histTemp);
+       delete histTemp;
+     }
+   }
+   
+   for(int i=0;i<4;i++) {
+     for(int j=0;j<MAX_T13_INDEX;j++) {
+       for(int k=0;k<MAX_DELTA_INDEX;k++) {
+	 TH2D *histTemp = (TH2D*)fpIn.Get(histSub[i][j][k]->GetName());
+	 if(!histTemp) {
+	   std::cerr << "Couldn't get " << i << "\t" << histSub[i][j][k]->GetName() << "\n";
+	   continue;
+	 }
+	 histSub[i][j][k]->Add(histTemp);
+	 delete histTemp;
+       }
+     }
+   }                   
+ }
+
+ for(int i=0;i<4;i++) {
+   histFull[i]->Scale(1./numAdded);
+ }
+
+ for(int i=0;i<2;i++) {
+   for(int j=0;j<4;j++) { 
+     histFour[i][j]->Scale(1./numAdded);
+   }
+ }
+ 
+ for(int i=0;i<4;i++) {
+   for(int j=0;j<MAX_T13_INDEX;j++) {
+     for(int k=0;k<MAX_DELTA_INDEX;k++) {
+       histSub[i][j][k]->Scale(1./numAdded);
+     }
+   }
+ }
+
+
+
+  char *plotTitle[4]={"CC-Selected (q<0)",
+		      "CC-Selected (q>0)",
+		      "NC-Selected (w/o track)",
+		      "NC-Selected (w/ track)"};
+  int plotInd[4]={0,1,2,3};
+
+  sprintf(canName,"canNormalSurface");
+  TCanvas *canNormalSurface  = new TCanvas(canName,canName,1200,1200);
+  canNormalSurface->Divide(2,2);
+  for(int canInd=0;canInd<4;canInd++) {	 
+    canNormalSurface->cd(canInd+1); 
+    Int_t histInd=plotInd[canInd];
+    std::cout << canInd << "\t" << histInd << "\n";
+    Double_t minLL=histFourNormal[histInd]->GetMinimum();
+    histFourNormal[histInd]->SetMaximum(minLL+10);
+    histFourNormal[histInd]->GetXaxis()->SetTitle("#theta_{23} (radians)");
+    histFourNormal[histInd]->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+    histFourNormal[histInd]->GetZaxis()->SetTitle("-2 #Delta LL");
+    histFourNormal[histInd]->SetTitle(plotTitle[canInd]);
+    histFourNormal[histInd]->Draw("colz");     
+  }   
+
+  sprintf(canName,"canNormalPlusNC");
+  TCanvas *canNormalPlusNC  = new TCanvas(canName,canName,800,800);
+  canNormalPlusNC->Divide(1,2);
+  canNormalPlusNC->cd(1);
+  histTotalNormal->SetMaximum(10);
+  histTotalNormal->SetTitle("All Events");
+  histTotalNormal->Draw("colz");    
+  canNormalPlusNC->cd(2);
+  histNQPQNormal->SetMaximum(10);
+  histNQPQNormal->SetTitle("Just CC Selected Events");
+  histNQPQNormal->Draw("colz");
+  
+  
+  sprintf(canName,"canCont");
+  TCanvas *canCont  = new TCanvas(canName,canName,800,800);
+  canCont->Divide(1,2,0.01,0.01);
+  canCont->cd(1);
+  //  gPad->SetLeftMargin(0.15);  
+  TH2D *histContNormalAll90 = (TH2D*) histTotalNormal->Clone("histContNormalAll90");
+  TH2D *histContInvertedAll90 = (TH2D*) histTotalInverted->Clone("histContInvertedAll90");
+  histContNormalAll90->SetTitle("");
+  histContInvertedAll90->SetTitle("");
+  Double_t val90All=histContNormalAll90->GetMinimum()+4.61;
+  if(histContInvertedAll90->GetMinimum()<histContNormalAll90->GetMinimum())
+     val90All=histContInvertedAll90->GetMinimum()+4.61;
+  
+  histContNormalAll90->SetContour(1,&val90All);
+  histContNormalAll90->SetLineColor(1);
+  histContNormalAll90->SetLineWidth(3);   
+  histContNormalAll90->GetXaxis()->SetTitle("#theta_{23} (radians)");
+  histContNormalAll90->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+
+  histContInvertedAll90->SetContour(1,&val90All);
+  histContInvertedAll90->SetLineColor(1);
+  histContInvertedAll90->SetLineWidth(3);   
+  histContInvertedAll90->GetXaxis()->SetTitle("#theta_{23} (radians)");
+  histContInvertedAll90->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
+
+  //    histContNormalAll90->GetYaxis()->SetTitleOffset(1.7);
+  //    histContNormalAll90->GetYaxis()->SetRangeUser(2,3);
+  histContNormalAll90->Draw("cont3");
+  //   TH2D *histContNQ90 = (TH2D*) histFourNormal[0]->Clone("histContNQ90");
+  //   Double_t val90NQ=histContNQ90->GetMinimum()+4.61;
+  //   histContNQ90->SetContour(1,&val90NQ);
+  //   histContNQ90->SetLineColor(getNiceColour(0));
+  //   histContNQ90->SetLineWidth(3);
+  //   histContNQ90->Draw("cont3 same");
+
+  TH2D *histContNormalNQPQ90 = (TH2D*) histNQPQNormal->Clone("histContNormalNQPQ90");
+  TH2D *histContInvertedNQPQ90 = (TH2D*) histNQPQInverted->Clone("histContInvertedNQPQ90");
+  Double_t val90NQPQ=histContNormalNQPQ90->GetMinimum()+4.61;
+  if(histContInvertedNQPQ90->GetMinimum()<histContNormalNQPQ90->GetMinimum()) 
+     val90NQPQ=histContInvertedNQPQ90->GetMinimum()+4.61;
+
+  histContNormalNQPQ90->SetContour(1,&val90NQPQ);
+  histContNormalNQPQ90->SetLineColor(getNiceColour(0));
+  histContNormalNQPQ90->SetLineWidth(3);
+  histContNormalNQPQ90->Draw("cont3 same");
+
+
+  histContInvertedNQPQ90->SetContour(1,&val90NQPQ);
+  histContInvertedNQPQ90->SetLineColor(getNiceColour(0));
+  histContInvertedNQPQ90->SetLineWidth(3);
+  
+  canCont->cd(1);
+  TGraph *grBest = new TGraph(numExps,t23ArrayTot,dm2ArrayTot);
+  grBest->SetMarkerStyle(29);
+  grBest->SetMarkerColor(kGreen+2);
+  grBest->DrawClone("p");
+
+  TGraph *grSecondBest = new TGraph(numExps,t23ArrayNQPQ,dm2ArrayNQPQ);
+  grSecondBest->SetMarkerStyle(22);
+  grSecondBest->SetMarkerColor(getNiceColour(0));
+  //  grSecondBest->DrawClone("p");
+  
+
+  canCont->cd(2);
+
+  histContInvertedAll90->Draw("cont3");
+  histContInvertedNQPQ90->Draw("cont3 same");
+  grBest->DrawClone("p");
+  //  grSecondBest->DrawClone("p");
+  
+
+  TMarker *marky = new TMarker(trueT23,trueDm,29);
+  marky->SetMarkerColor(kRed+2);
+  marky->SetMarkerSize(2);
+  if(trueDm>0)
+    canCont->cd(1);
+  marky->Draw("same");
+
+  
+  canCont->cd(1);
+  TLegend *leggy = new TLegend(0.6,0.6,0.9,0.9);
+  leggy->SetFillColor(0);
+  leggy->SetFillStyle(0);
+  leggy->SetBorderSize(0);
+  //  leggy->AddEntry("blank","90% C.L.","l");
+  leggy->AddEntry(histContNormalNQPQ90,"CC Selected (90%)","l");
+  leggy->AddEntry(histContNormalAll90,"CC+NC Selected (90%)","l");
+  leggy->AddEntry(marky,"Input Values","p");
+  leggy->AddEntry(grBest,"Fake Best Fits","p");
+
+  //  leggy->AddEntry(histContNormalJustFHC90,"No RHC","l");
+  leggy->Draw("same");
+
+
+  fpOut->cd();
+  histTotalNormal->Write();
+  histNQPQNormal->Write();
+  for(int histType=0;histType<4;histType++) {
+     histFourNormal[histType]->Write();
+  }
+  for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+     for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	histTotalNormalSub[t13i][deltai]->Write();
+	histNQPQNormalSub[t13i][deltai]->Write();
+     }
+  }
+  histTotalInverted->Write();
+  histNQPQInverted->Write();
+  for(int histType=0;histType<4;histType++) {
+     histFourInverted[histType]->Write();
+  }
+  for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+     for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	histTotalInvertedSub[t13i][deltai]->Write();
+	histNQPQInvertedSub[t13i][deltai]->Write();
+     }
+  }
+  grBest->SetNameTitle("bestFitTotal","Individual Best Fit Points");
+  grBest->Write();
+  grSecondBest->SetNameTitle("bestFitNQPQ","Individual Best Fit Points NQPQ Only");
+  grSecondBest->Write();
+
+  canCont->Write();
+
+  canNormalSurface->Write();
+
+  canNormalPlusNC->Write();
+
+}
+
+
+TH2D *marginaliseOverHists(TH2D *inHists[], Int_t numHists, char *histName)
+{  
+  if(numHists==0) return NULL;
+  TH2D *outHist=(TH2D*)inHists[0]->Clone(histName);
+  Int_t numXbins=outHist->GetNbinsX();
+  Int_t numYbins=outHist->GetNbinsY();
+  
+  if(numHists>1) {
+    for(int binx=1;binx<=numXbins;binx++) {
+      for(int biny=1;biny<=numYbins;biny++) {
+	Double_t value=outHist->GetBinContent(binx,biny);
+	for(int i=1;i<numHists;i++) {
+	  Double_t other=inHists[i]->GetBinContent(binx,biny);
+	  if(other<value) {
+	    value=other;
+	  }
+	}
+	outHist->SetBinContent(binx,biny,value);
+	
+      }
+    }
+  }
+  return outHist;
+}
+
+
+
+
+void subtractMinimum(TH2D*histCombi)
+{
+
+  Double_t minValue=1e9;
+  for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
+    for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {
+      if(histCombi->GetBinContent(binx,biny)<minValue)
+	minValue=histCombi->GetBinContent(binx,biny);
+    }    
+  }     
+  
+  for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
+    for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {
+      histCombi->SetBinContent(binx,biny,histCombi->GetBinContent(binx,biny)-minValue);
+    }
+  }
+}
+
+TH2D *getNewHistogram(int normalOrInverted, char *histName) {
+  if(normalOrInverted==0) return getNewNormalHistogram(histName);
+  else return getNewInvertedHistogram(histName);
+}

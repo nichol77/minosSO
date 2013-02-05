@@ -1,0 +1,103 @@
+#include "src/paramFuncs.h"
+
+
+void plotEventCounts()
+{
+
+  TFile *fp = TFile::Open("other/nueTauTree.root","OLD");
+  TTree *nueTauTree = (TTree*) fp->Get("nueTauTree");
+  
+  char plotArg[180];
+  char plotCond[180];
+  char histName[180];
+  char canName[180];
+  char legTag[180];
+  TH1D *histNueCC[2][4][8];
+  TH1D *histTot[2][4][8];
+
+  Int_t totMin[4]={0,0,600,0};
+  Int_t totMax[4]={0,0,665,0};
+
+  Int_t dmArray[2]={69,31};
+  Int_t lineStyle[2]={1,3};
+
+
+  char *mhTag[2]={"NH","IH"};
+
+
+  for(int i=2;i<3;i++) {
+    sprintf(canName,"canNue%d",i);
+    TCanvas *canNue = new TCanvas(canName,canName);
+
+    TLegend *leggy = new TLegend(0.2,0.5,0.4,0.9);
+    leggy->SetBorderSize(0);
+    leggy->SetFillStyle(0);
+    leggy->SetFillColor(0);
+
+    sprintf(canName,"canTot%d",i);
+    TCanvas *canTot = new TCanvas(canName,canName);
+
+    
+    
+    for(int mhi=0;mhi<2;mhi++) {
+
+      for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+	
+	sprintf(histName,"histNueCC_%d_%d_%d",i,mhi,deltai);
+	
+	histNueCC[mhi][i][deltai]=new TH1D(histName,histName,101,0.3,1.3);
+	
+	canNue->cd();
+	sprintf(plotArg,"getT23(t23i)>>%s",histName);
+	sprintf(plotCond,"numNue[%d]*(dmi==%d && t13i==6 && deltai==%d)",i,dmArray[mhi],deltai);
+	histNueCC[mhi][i][deltai]->SetLineColor(getNiceColour(deltai));	
+	histNueCC[mhi][i][deltai]->SetLineStyle(lineStyle[mhi]);
+	if(deltai==0 && mhi==0) {
+	  nueTauTree->Draw(plotArg,plotCond,"L");
+	  histNueCC[mhi][i][deltai]->GetXaxis()->SetTitle("#theta_{23}");
+	  histNueCC[mhi][i][deltai]->GetYaxis()->SetTitle("Number Nue-CC Events");
+	  histNueCC[mhi][i][deltai]->SetTitle("Nue events in NC Sample, 6#times10^{20} POT");
+	  histNueCC[mhi][i][deltai]->GetXaxis()->SetRangeUser(0.32,1.28);
+
+	}
+	else 
+	  nueTauTree->Draw(plotArg,plotCond,"same L");
+	sprintf(legTag,"
+	
+	
+	sprintf(histName,"histTot__%d_%d_%d",i,mhi,deltai);
+	histTot[mhi][i][deltai]=new TH1D(histName,histName,101,0.3,1.3);
+	canTot->cd();
+	sprintf(plotArg,"getT23(t23i)>>%s",histName);
+	sprintf(plotCond,"numTot[%d]*(dmi==%d && t13i==6 && deltai==%d)",i,dmArray[mhi],deltai);
+	histTot[mhi][i][deltai]->SetLineColor(getNiceColour(deltai));
+	histTot[mhi][i][deltai]->SetLineStyle(lineStyle[mhi]);
+	
+	if(deltai==0 && mhi==0) {
+	  nueTauTree->Draw(plotArg,plotCond,"L");
+	  histTot[mhi][i][deltai]->GetXaxis()->SetTitle("#theta_{23}");
+	  histTot[mhi][i][deltai]->GetYaxis()->SetTitle("Number of Events");
+	  histTot[mhi][i][deltai]->SetTitle("Total Events in NC Sample, 6#times10^{20} POT");
+	  histTot[mhi][i][deltai]->GetYaxis()->SetRangeUser(totMin[i],totMax[i]);
+	  histTot[mhi][i][deltai]->GetXaxis()->SetRangeUser(0.32,1.28);
+	}
+	else 
+	  nueTauTree->Draw(plotArg,plotCond,"same L");
+	
+      }	
+    }
+    
+  }					
+  canNue->Update();
+  canNue->Modified();
+  canTot->Update();
+  canTot->Modified();
+  
+
+
+
+
+
+
+
+}

@@ -1,0 +1,449 @@
+
+
+TLegend *leggyPQMC;
+TLegend *leggyPQData;
+
+void makeNearRatios()
+{
+
+  TCanvas *canNQData = new TCanvas("canNQData","canNQData",800,500);
+  TCanvas *canNQMC = new TCanvas("canNQMC","canNQMC",800,500);
+  TCanvas *canPQData = new TCanvas("canPQData","canPQData",800,500);
+  TCanvas *canPQMC = new TCanvas("canPQMC","canPQMC",800,500);
+  TCanvas *canPQRat = new TCanvas("canPQRat","canPQRat",800,500);
+
+  doRunI();
+  doRunII();
+  doRunIII();
+  doRunV();
+  doRunVI();
+  doRunX();
+
+}
+
+void doRunI() {
+  Double_t potRunIData;
+  Double_t potRunIMC;
+  ifstream RunIDataPOT("pot/runINDDataPOT.txt");
+  ifstream RunIMCPOT("pot/runINDMCPOT.txt");
+  
+  RunIDataPOT >> potRunIData;
+  RunIMCPOT >> potRunIMC;
+
+  TFile *fpRunIData = TFile::Open("ndpqnqswitched/runi_nd_data.root");
+  TH1D *histRunINQData = (TH1D*) fpRunIData->Get("histEnergyNQ_runi_nd_data");
+  TH1D *histRunIPQData = (TH1D*) fpRunIData->Get("histEnergyPQ_runi_nd_data");
+  
+
+  TFile *fpRunIMc = TFile::Open("ndpqnqswitched/runi_nd_mc.root");
+  TH1D *histRunINQMc = (TH1D*) fpRunIMc->Get("histEnergyNQ_runi_nd_mc");
+  TH1D *histRunIPQMc = (TH1D*) fpRunIMc->Get("histEnergyPQ_runi_nd_mc");
+  
+  TFile *fpRunIRat = new TFile("ndratios/runINDRatio.root","RECREATE");
+  TH1D *histRunIPQReallyRat = (TH1D*) histRunINQData->Clone("histRunINQData");
+  histRunIPQReallyRat->SetNameTitle("histRunIPQReallyRat","histRunIPQReallyRat");
+  TH1D *histRunINQReallyRat = (TH1D*) histRunIPQData->Clone("histRunIPQData");
+  histRunINQReallyRat->SetNameTitle("histRunINQReallyRat","histRunINQReallyRat");
+  histRunIPQReallyRat->Scale(1e18/potRunIData);
+  histRunINQReallyRat->Scale(1e18/potRunIData);
+  histRunINQMc->Scale(1e18/potRunIMC);
+  histRunIPQMc->Scale(1e18/potRunIMC);
+  histRunIPQReallyRat->Divide(histRunINQMc);
+  histRunINQReallyRat->Divide(histRunIPQMc);
+  histRunIPQReallyRat->Write();
+  histRunINQReallyRat->Write();
+  //  fpRunIRat->Close();
+
+  canNQData->cd();
+  histRunINQData->Scale(1e18/potRunIData);
+  histRunINQData->SetLineColor(getNiceColour(0));
+  histRunINQData->SetTitle("ND Data (q>0) Spectra");
+  histRunINQData->GetXaxis()->SetTitle("Reconstructed Energy (GeV)");
+  histRunINQData->GetXaxis()->SetRangeUser(0,19.5);
+  histRunINQData->GetYaxis()->SetTitle("Events per 1e18 POT");
+  histRunINQData->SetStats(0);
+  histRunINQData->Draw();
+
+  canNQMC->cd();
+  histRunINQMc->SetLineColor(getNiceColour(0));
+  histRunINQMc->SetTitle("ND MC (q>0) Spectra");
+  histRunINQMc->GetXaxis()->SetTitle("Reconstructed Energy (GeV)");
+  histRunINQMc->GetXaxis()->SetRangeUser(0,19.5);
+  histRunINQMc->GetYaxis()->SetTitle("Events per 1e18 POT");
+  histRunINQMc->SetStats(0);
+  histRunINQMc->Draw();
+
+
+  canPQData->cd();
+  histRunIPQData->Scale(1e18/potRunIData);
+  histRunIPQData->SetLineColor(getNiceColour(0));
+  histRunIPQData->SetTitle("ND Data (q<0) Spectra");
+  histRunIPQData->GetXaxis()->SetTitle("Reconstructed Energy (GeV)");
+  histRunIPQData->GetXaxis()->SetRangeUser(0,19.5);
+  histRunIPQData->GetYaxis()->SetTitle("Events per 1e18 POT");
+  histRunIPQData->SetStats(0);
+  histRunIPQData->Draw();
+
+  leggyPQData = new TLegend(0.6,0.6,0.9,0.9);
+  leggyPQData->SetBorderSize(0);
+  leggyPQData->SetFillStyle(0);
+  leggyPQData->AddEntry(histRunIPQData,"Run I","l");
+
+
+  canPQMC->cd();
+  histRunIPQMc->SetLineColor(getNiceColour(0));
+  histRunIPQMc->SetTitle("ND MC (q<0) Spectra");
+  histRunIPQMc->GetXaxis()->SetTitle("Reconstructed Energy (GeV)");
+  histRunIPQMc->GetXaxis()->SetRangeUser(0,19.5);
+  histRunIPQMc->GetYaxis()->SetTitle("Events per 1e18 POT");
+  histRunIPQMc->SetStats(0);
+  histRunIPQMc->Draw();
+
+  leggyPQMC = new TLegend(0.6,0.6,0.9,0.9);
+  leggyPQMC->SetBorderSize(0);
+  leggyPQMC->SetFillStyle(0);
+  leggyPQMC->AddEntry(histRunIPQMc,"Run I","l");
+
+  canPQRat->cd();
+  histRunINQReallyRat->SetLineColor(getNiceColour(0));
+  histRunINQReallyRat->SetTitle("ND Data/MC Ratio (q<0)");
+  histRunINQReallyRat->GetXaxis()->SetTitle("Reconstructed Energy (GeV)");
+  histRunINQReallyRat->GetXaxis()->SetRangeUser(0,19.5);
+  histRunINQReallyRat->GetYaxis()->SetTitle("Ratio");
+  histRunINQReallyRat->SetStats(0);
+  histRunINQReallyRat->Draw();
+
+}
+
+//Run2
+
+void doRunII() {
+  Double_t potRunIIData;
+  Double_t potRunIIMC;
+  ifstream RunIIDataPOT("pot/runIINDDataPOT.txt");
+  ifstream RunIIMCPOT("pot/runIINDMCPOT.txt");
+  
+  RunIIDataPOT >> potRunIIData;
+  RunIIMCPOT >> potRunIIMC;
+
+  TFile *fpRunIIData = TFile::Open("ndpqnqswitched/runii_nd_data.root");
+  TH1D *histRunIINQData = (TH1D*) fpRunIIData->Get("histEnergyNQ_runii_nd_data");
+  TH1D *histRunIIPQData = (TH1D*) fpRunIIData->Get("histEnergyPQ_runii_nd_data");
+  
+
+  TFile *fpRunIIMc = TFile::Open("ndpqnqswitched/runii_nd_mc.root");
+  TH1D *histRunIINQMc = (TH1D*) fpRunIIMc->Get("histEnergyNQ_runii_nd_mc");
+  TH1D *histRunIIPQMc = (TH1D*) fpRunIIMc->Get("histEnergyPQ_runii_nd_mc");
+  
+  TFile *fpRunIIRat = new TFile("ndratios/runIINDRatio.root","RECREATE");
+  TH1D *histRunIIPQReallyRat = (TH1D*) histRunIINQData->Clone("histRunIINQData");
+  histRunIIPQReallyRat->SetNameTitle("histRunIIPQReallyRat","histRunIIPQReallyRat");
+  TH1D *histRunIINQReallyRat = (TH1D*) histRunIIPQData->Clone("histRunIIPQData");
+  histRunIINQReallyRat->SetNameTitle("histRunIINQReallyRat","histRunIINQReallyRat");
+  histRunIIPQReallyRat->Scale(1e18/potRunIIData);
+  histRunIINQReallyRat->Scale(1e18/potRunIIData);
+  histRunIINQMc->Scale(1e18/potRunIIMC);
+  histRunIIPQMc->Scale(1e18/potRunIIMC);
+  histRunIIPQReallyRat->Divide(histRunIINQMc);
+  histRunIINQReallyRat->Divide(histRunIIPQMc);
+  histRunIIPQReallyRat->Write();
+  histRunIINQReallyRat->Write();
+  //  fpRunIIRat->Close();
+
+
+  canNQData->cd();
+  histRunIINQData->Scale(1e18/potRunIIData);
+  histRunIINQData->SetLineColor(getNiceColour(1));
+  histRunIINQData->Draw("same");
+
+  canNQMC->cd();
+  histRunIINQMc->SetLineColor(getNiceColour(1));
+  histRunIINQMc->Draw("same");
+
+
+
+  canPQData->cd();
+  histRunIIPQData->Scale(1e18/potRunIIData);
+  histRunIIPQData->SetLineColor(getNiceColour(1));
+  histRunIIPQData->Draw("same");
+  leggyPQData->AddEntry(histRunIIPQData,"Run II","l");
+
+  canPQMC->cd();
+  histRunIIPQMc->SetLineColor(getNiceColour(1));
+  histRunIIPQMc->Draw("same");
+  leggyPQMC->AddEntry(histRunIIPQMc,"Run II","l");
+
+
+  canPQRat->cd();
+  histRunIINQReallyRat->SetLineColor(getNiceColour(1));
+  histRunIINQReallyRat->Draw("same");
+
+}
+
+
+//Run3
+
+void doRunIII() {
+  Double_t potRunIIIData;
+  Double_t potRunIIIMC;
+  ifstream RunIIIDataPOT("pot/runIIINDDataPOT.txt");
+  ifstream RunIIIMCPOT("pot/runIIINDMCPOT.txt");
+  
+  RunIIIDataPOT >> potRunIIIData;
+  RunIIIMCPOT >> potRunIIIMC;
+
+  TFile *fpRunIIIData = TFile::Open("ndpqnqswitched/runiii_nd_data.root");
+  TH1D *histRunIIINQData = (TH1D*) fpRunIIIData->Get("histEnergyNQ_runiii_nd_data");
+  TH1D *histRunIIIPQData = (TH1D*) fpRunIIIData->Get("histEnergyPQ_runiii_nd_data");
+  
+
+  TFile *fpRunIIIMc = TFile::Open("ndpqnqswitched/runiii_nd_mc.root");
+  TH1D *histRunIIINQMc = (TH1D*) fpRunIIIMc->Get("histEnergyNQ_runiii_nd_mc");
+  TH1D *histRunIIIPQMc = (TH1D*) fpRunIIIMc->Get("histEnergyPQ_runiii_nd_mc");
+  
+  TFile *fpRunIIIRat = new TFile("ndratios/runIIINDRatio.root","RECREATE");
+  TH1D *histRunIIIPQReallyRat = (TH1D*) histRunIIINQData->Clone("histRunIIINQData");
+  histRunIIIPQReallyRat->SetNameTitle("histRunIIIPQReallyRat","histRunIIIPQReallyRat");
+  TH1D *histRunIIINQReallyRat = (TH1D*) histRunIIIPQData->Clone("histRunIIIPQData");
+  histRunIIINQReallyRat->SetNameTitle("histRunIIINQReallyRat","histRunIIINQReallyRat");
+  histRunIIIPQReallyRat->Scale(1e18/potRunIIIData);
+  histRunIIINQReallyRat->Scale(1e18/potRunIIIData);
+  histRunIIINQMc->Scale(1e18/potRunIIIMC);
+  histRunIIIPQMc->Scale(1e18/potRunIIIMC);
+  histRunIIIPQReallyRat->Divide(histRunIIINQMc);
+  histRunIIINQReallyRat->Divide(histRunIIIPQMc);
+  histRunIIIPQReallyRat->Write();
+  histRunIIINQReallyRat->Write();
+  //  fpRunIIIRat->Close();
+
+
+
+  canNQData->cd();
+  histRunIIINQData->Scale(1e18/potRunIIIData);
+  histRunIIINQData->SetLineColor(getNiceColour(2));
+  histRunIIINQData->Draw("same");
+
+  canNQMC->cd();
+  histRunIIINQMc->SetLineColor(getNiceColour(2));
+  histRunIIINQMc->Draw("same");
+
+
+  canPQData->cd();
+  histRunIIIPQData->Scale(1e18/potRunIIIData);
+  histRunIIIPQData->SetLineColor(getNiceColour(2));
+  histRunIIIPQData->Draw("same");
+  leggyPQData->AddEntry(histRunIIIPQData,"Run III","l");
+
+  canPQMC->cd();
+  histRunIIIPQMc->SetLineColor(getNiceColour(2));
+  histRunIIIPQMc->Draw("same");
+  leggyPQMC->AddEntry(histRunIIIPQMc,"Run III","l");
+
+
+
+  canPQRat->cd();
+  histRunIIINQReallyRat->SetLineColor(getNiceColour(2));
+  histRunIIINQReallyRat->Draw("same");
+
+}
+
+//Run 5
+
+void doRunV() {
+  Double_t potRunVData;
+  Double_t potRunVMC;
+  ifstream RunVDataPOT("pot/runVNDDataPOT.txt");
+  ifstream RunVMCPOT("pot/runIIINDMCPOT.txt");
+  
+  RunVDataPOT >> potRunVData;
+  RunVMCPOT >> potRunVMC;
+
+  TFile *fpRunVData = TFile::Open("ndpqnqswitched/runv_nd_data.root");
+  TH1D *histRunVNQData = (TH1D*) fpRunVData->Get("histEnergyNQ_runv_nd_data");
+  TH1D *histRunVPQData = (TH1D*) fpRunVData->Get("histEnergyPQ_runv_nd_data");
+  
+
+  TFile *fpRunVMc = TFile::Open("ndpqnqswitched/runiii_nd_mc.root");
+  TH1D *histRunVNQMc = (TH1D*) fpRunVMc->Get("histEnergyNQ_runiii_nd_mc");
+  TH1D *histRunVPQMc = (TH1D*) fpRunVMc->Get("histEnergyPQ_runiii_nd_mc");
+  
+  TFile *fpRunVRat = new TFile("ndratios/runVNDRatio.root","RECREATE");
+  TH1D *histRunVPQReallyRat = (TH1D*) histRunVNQData->Clone("histRunVNQData");
+  histRunVPQReallyRat->SetNameTitle("histRunVPQReallyRat","histRunVPQReallyRat");
+  TH1D *histRunVNQReallyRat = (TH1D*) histRunVPQData->Clone("histRunVPQData");
+  histRunVNQReallyRat->SetNameTitle("histRunVNQReallyRat","histRunVNQReallyRat");
+  histRunVPQReallyRat->Scale(1e18/potRunVData);
+  histRunVNQReallyRat->Scale(1e18/potRunVData);
+  histRunVNQMc->Scale(1e18/potRunVMC);
+  histRunVPQMc->Scale(1e18/potRunVMC);
+  histRunVPQReallyRat->Divide(histRunVNQMc);
+  histRunVNQReallyRat->Divide(histRunVPQMc);
+  histRunVPQReallyRat->Write();
+  histRunVNQReallyRat->Write();
+  //  fpRunVRat->Close();
+
+
+
+  canNQData->cd();
+  histRunVNQData->Scale(1e18/potRunVData);
+  histRunVNQData->SetLineColor(getNiceColour(3));
+  histRunVNQData->Draw("same");
+
+  canNQMC->cd();
+  histRunVNQMc->SetLineColor(getNiceColour(3));
+  histRunVNQMc->Draw("same");
+
+
+  canPQData->cd();
+  histRunVPQData->Scale(1e18/potRunVData);
+  histRunVPQData->SetLineColor(getNiceColour(3));
+  histRunVPQData->Draw("same");
+  leggyPQData->AddEntry(histRunVPQData,"Run V","l");
+
+  canPQMC->cd();
+  histRunVPQMc->SetLineColor(getNiceColour(3));
+  histRunVPQMc->Draw("same");
+  leggyPQMC->AddEntry(histRunVPQMc,"Run V","l");
+
+
+  canPQRat->cd();
+  histRunVNQReallyRat->SetLineColor(getNiceColour(3));
+  histRunVNQReallyRat->Draw("same");
+
+}
+
+
+//Run6
+
+void doRunVI() {
+  Double_t potRunVIData;
+  Double_t potRunVIMC;
+  ifstream RunVIDataPOT("pot/runVINDDataPOT.txt");
+  ifstream RunVIMCPOT("pot/runIIINDMCPOT.txt");
+  
+  RunVIDataPOT >> potRunVIData;
+  RunVIMCPOT >> potRunVIMC;
+
+  TFile *fpRunVIData = TFile::Open("ndpqnqswitched/runvi_nd_data.root");
+  TH1D *histRunVINQData = (TH1D*) fpRunVIData->Get("histEnergyNQ_runvi_nd_data");
+  TH1D *histRunVIPQData = (TH1D*) fpRunVIData->Get("histEnergyPQ_runvi_nd_data");
+  
+
+  TFile *fpRunVIMc = TFile::Open("ndpqnqswitched/runiii_nd_mc.root");
+  TH1D *histRunVINQMc = (TH1D*) fpRunVIMc->Get("histEnergyNQ_runiii_nd_mc");
+  TH1D *histRunVIPQMc = (TH1D*) fpRunVIMc->Get("histEnergyPQ_runiii_nd_mc");
+  
+  TFile *fpRunVIRat = new TFile("ndratios/runVINDRatio.root","RECREATE");
+  TH1D *histRunVIPQReallyRat = (TH1D*) histRunVINQData->Clone("histRunVINQData");
+  histRunVIPQReallyRat->SetNameTitle("histRunVIPQReallyRat","histRunVIPQReallyRat");
+  TH1D *histRunVINQReallyRat = (TH1D*) histRunVIPQData->Clone("histRunVIPQData");
+  histRunVINQReallyRat->SetNameTitle("histRunVINQReallyRat","histRunVINQReallyRat");
+  histRunVIPQReallyRat->Scale(1e18/potRunVIData);
+  histRunVINQReallyRat->Scale(1e18/potRunVIData);
+  histRunVINQMc->Scale(1e18/potRunVIMC);
+  histRunVIPQMc->Scale(1e18/potRunVIMC);
+  histRunVIPQReallyRat->Divide(histRunVINQMc);
+  histRunVINQReallyRat->Divide(histRunVIPQMc);
+  histRunVIPQReallyRat->Write();
+  histRunVINQReallyRat->Write();
+  //  fpRunVIRat->Close();
+
+
+
+  canNQData->cd();
+  histRunVINQData->Scale(1e18/potRunVIData);
+  histRunVINQData->SetLineColor(getNiceColour(4));
+  histRunVINQData->Draw("same");
+
+  canNQMC->cd();
+  histRunVINQMc->SetLineColor(getNiceColour(4));
+  histRunVINQMc->Draw("same");
+
+
+  canPQData->cd();
+  histRunVIPQData->Scale(1e18/potRunVIData);
+  histRunVIPQData->SetLineColor(getNiceColour(4));
+  histRunVIPQData->Draw("same");
+  leggyPQData->AddEntry(histRunVIPQData,"Run VI","l");
+
+  canPQMC->cd();
+  histRunVIPQMc->SetLineColor(getNiceColour(4));
+  histRunVIPQMc->Draw("same");
+  leggyPQMC->AddEntry(histRunVIPQMc,"Run VI","l");
+
+
+
+  canPQRat->cd();
+  histRunVINQReallyRat->SetLineColor(getNiceColour(4));
+  histRunVINQReallyRat->Draw("same");
+
+}
+
+
+//Run 10
+
+void doRunX() {
+  Double_t potRunXData;
+  Double_t potRunXMC;
+  ifstream RunXDataPOT("pot/runXNDDataPOT.txt");
+  ifstream RunXMCPOT("pot/runIIINDMCPOT.txt");
+  
+  RunXDataPOT >> potRunXData;
+  RunXMCPOT >> potRunXMC;
+
+  TFile *fpRunXData = TFile::Open("ndpqnqswitched/runx_nd_data.root");
+  TH1D *histRunXNQData = (TH1D*) fpRunXData->Get("histEnergyNQ_runx_nd_data");
+  TH1D *histRunXPQData = (TH1D*) fpRunXData->Get("histEnergyPQ_runx_nd_data");
+  
+
+  TFile *fpRunXMc = TFile::Open("ndpqnqswitched/runiii_nd_mc.root");
+  TH1D *histRunXNQMc = (TH1D*) fpRunXMc->Get("histEnergyNQ_runiii_nd_mc");
+  TH1D *histRunXPQMc = (TH1D*) fpRunXMc->Get("histEnergyPQ_runiii_nd_mc");
+  
+  TFile *fpRunXRat = new TFile("ndratios/runXNDRatio.root","RECREATE");
+  TH1D *histRunXPQReallyRat = (TH1D*) histRunXNQData->Clone("histRunXNQData");
+  histRunXPQReallyRat->SetNameTitle("histRunXPQReallyRat","histRunXPQReallyRat");
+  TH1D *histRunXNQReallyRat = (TH1D*) histRunXPQData->Clone("histRunXPQData");
+  histRunXNQReallyRat->SetNameTitle("histRunXNQReallyRat","histRunXNQReallyRat");
+  histRunXPQReallyRat->Scale(1e18/potRunXData);
+  histRunXNQReallyRat->Scale(1e18/potRunXData);
+  histRunXNQMc->Scale(1e18/potRunXMC);
+  histRunXPQMc->Scale(1e18/potRunXMC);
+  histRunXPQReallyRat->Divide(histRunXNQMc);
+  histRunXNQReallyRat->Divide(histRunXPQMc);
+  histRunXPQReallyRat->Write();
+  histRunXNQReallyRat->Write();
+  //  fpRunXRat->Close();
+
+
+
+  canNQData->cd();
+  histRunXNQData->Scale(1e18/potRunXData);
+  histRunXNQData->SetLineColor(getNiceColour(5));
+  histRunXNQData->Draw("same");
+
+  canNQMC->cd();
+  histRunXNQMc->SetLineColor(getNiceColour(5));
+  histRunXNQMc->Draw("same");
+
+
+  canPQData->cd();
+  histRunXPQData->Scale(1e18/potRunXData);
+  histRunXPQData->SetLineColor(getNiceColour(5));
+  histRunXPQData->Draw("same");
+  leggyPQData->AddEntry(histRunXPQData,"Run X","l");
+  leggyPQData->Draw("same");
+
+  canPQMC->cd();
+  histRunXPQMc->SetLineColor(getNiceColour(5));
+  histRunXPQMc->Draw("same");
+  leggyPQMC->AddEntry(histRunXPQMc,"Run X","l");
+  leggyPQMC->Draw("same");
+
+
+
+  canPQRat->cd();
+  histRunXNQReallyRat->SetLineColor(getNiceColour(5));
+  histRunXNQReallyRat->Draw("same");
+
+}

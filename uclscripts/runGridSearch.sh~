@@ -1,0 +1,4 @@
+#!/bin/bash
+for run in 1 2 3 5 6 10; do fitting/doGridSearchFake $run 82 77; done;
+
+
