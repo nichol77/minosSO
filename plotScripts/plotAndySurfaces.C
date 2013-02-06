@@ -403,7 +403,7 @@ TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t norm
    TH2D *histOut = new TH2D(histName,histName,
 			    81, 0.2975, 0.7025,
 			    61, 2.095e-3, 2.705e-3);
-   for(int sinBin=1;sinBin<histOut->GetNbinsX();sinBin++) {
+   for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
      Double_t sin2theta23=histOut->GetXaxis()->GetBinCenter(sinBin);
      Double_t theta23=TMath::ASin(TMath::Sqrt(sin2theta23));
      lookupTheta23[sinBin-1]=theta23;     
@@ -416,7 +416,7 @@ TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t norm
        //Inverted  hierarchy
        dm32=-1*(fogliDm+0.5*DM_12);
      }     
-     lookupDm[dmBin-1]=dm32;
+     lookupDm[dmBin-1]=dm32*1e3;
    }
 
   for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
