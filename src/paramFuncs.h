@@ -84,13 +84,13 @@ inline Int_t getDmiFromDm(Double_t dm2) {
    return TMath::Nint((dm2-MIN_DM2)/DM2_STEP_SIZE);
 }
 
-inline TH2D *getNewInvertedHistogram(char *outName) {
+inline TH2D *getNewInvertedHistogram(const char *outName) {
 
    return new TH2D (outName,outName,MAX_T23_INDEX,MIN_T23-0.5*T23_STEP_SIZE,MIN_T23+(MAX_T23_INDEX-0.5)*T23_STEP_SIZE,
 		    MAX_DMI_INDEX/2,1e3*(MIN_NEG_DM2-0.5*DM2_STEP_SIZE),1e3*(MIN_NEG_DM2+(MAX_DMI_INDEX/2)*DM2_STEP_SIZE));
 }
 
-inline TH2D *getNewNormalHistogram(char *outName) {
+inline TH2D *getNewNormalHistogram(const char *outName) {
    return new TH2D(outName,outName,MAX_T23_INDEX,MIN_T23-0.5*T23_STEP_SIZE,MIN_T23+(MAX_T23_INDEX-0.5)*T23_STEP_SIZE,
 		   MAX_DMI_INDEX/2,1e3*(MIN_POS_DM2-0.5*DM2_STEP_SIZE),1e3*(MIN_POS_DM2+(MAX_DMI_INDEX/2)*DM2_STEP_SIZE));
 }
