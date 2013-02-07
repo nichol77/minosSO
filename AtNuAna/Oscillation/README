@@ -1,0 +1,70 @@
+See DocDB #4698 (production heights examination) and #4361 (oscillation
+examination) for more information.
+
+The package AtNuAna/Oscillation creates the library libAtNuOscillation.so.  
+The primary class of this package is AtNuOscillate, which propagates neutrino
+through the earth with a given neutrino energy, type, and zenith, and wages 
+the oscillation probability to all three neutrino types based on the 
+oscillation parameters.
+
+
+AtNuOscillate.cxx
+AtNuOscillate.h:
+ Propagates neutrinos through the earth and calculates oscillation
+ probabilities. To instantiate and setup the current best oscillation 
+ parameters (plus the Chooz limit):
+  AtNuOscillate nuosc;
+  nuosc.SetDMSq12(8.0e-5);
+  nuosc.SetDMSq23(2.5e-3);
+  nuosc.SetSinSq2Theta12(0.86);
+  nuosc.SetSinSq2Theta23(1.0);
+  nuosc.SetSinSq2Theta13(0.1);
+  nuosc.DoMatterEffects(true);
+  nuosc.GetPMNS().PrintMix(); // Report the mixing matrix
+  nuosc.GetPMNS().PrintDeltaMsqrs(); // Report the delta m^2 values
+
+ Note that the exact definition of DMSq23 is: MSq3 - MSq2.
+
+ To alter the production height to imethod:
+  noosc.ProdHeightMethod(imethod);
+  // imethod = 0: Flat production height at 25km.
+  // imethod = 1: Mean production height method.
+  // imethod = 2: Random production height method.
+  // imethod = 3: PDF Mean production height method.
+
+ To use this to propagate a neutrino from a AtmosEvent *evt:
+  double CosZenith =  - evt->MCInfo.PnuY / evt->MCInfo.Enu;
+  nuosc.PropagateAtNu(CosZenith, evt->MCInfo.Enu, evt->MCInfo.IDnu);
+
+ To measure the probability of oscillating from inutype to jnutype 
+  // (i: 0 = nu_e, 1 = nu_mu, 2 = nu_tau):
+  double OscProb = nuosc.OscProb(inutype, jnutype);
+
+
+PMNS.cxx
+PMNS.h:
+ This class is used by the AtNuOscillate class to propagate the neutrino wave
+ function incrementally through the regions of the earth. It is based on the
+ class of the same name created by Mark Messier.
+
+
+ProductionHeight.cxx
+ProductionHeight.h:
+ This namespace is used by the AtNuOscillate class to find either the mean
+ production height or a random production height for neutrinos created by either
+ pion or muon decay.  The methods require only zenith angle (-PnuY/Enu) and
+ neutrino energy (Enu) to find these production heights. The methods are:
+  double MeanPionProdHeight(double CosZenith, double Energy);
+  double MeanMuonProdHeight(double CosZenith, double Energy);
+
+  double RandomKR(double BoverA);
+  double RndmPionProdHeight(double CosZenith, double Energy);
+  double RndmMuonProdHeight(double CosZenith, double Energy);
+
+  double PDFMeanPionProdHeight(double CosZenith, double Energy);
+  double PDFMeanMuonProdHeight(double CosZenith, double Energy);
+
+ The MeanHeight is determined by a separate parameterization done by Keith Ruddick.  
+ The PDFMeanHeight uses the KR parameterization for the RandomHeight PDF, 
+ and finds the mean of this distribution.  The random methods take
+ approximately twice as long as the mean methods.
