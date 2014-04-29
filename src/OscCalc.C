@@ -4,6 +4,15 @@
 #include <cstdlib>
 #include <iostream>
 
+#ifndef __USE_GNU
+void sincos(double value, double *sinOut, double *cosOut) {
+  double sinVal=sin(value);
+  double cosVal=cos(value);
+  *sinOut=sinVal;
+  *cosOut=cosVal;
+}
+#endif
+
 using namespace std; 
 
 OscCalc::OscCalc()

@@ -13,16 +13,16 @@ Double_t oscFuncVsT23(Double_t *x, Double_t *par);
 Double_t diffFuncVsT23(Double_t *x, Double_t *par) ;
 Double_t oscFuncVsDelta(Double_t *x, Double_t *par);
 void plotNumberOfNumuEvents();
-void plotNumberOfNueEvents();
+void plotNumberOfNueEvents(double L, double E);
 
 
 OscCalc fOscCalc;
 Int_t inu,inunoosc;
 
-void plotNumberOfEvents()
+void plotNumberOfEvents(double L, double E)
 {
   //  plotNumberOfNumuEvents();
-  plotNumberOfNueEvents();
+  plotNumberOfNueEvents(L,E);
 
 }
 
@@ -121,11 +121,11 @@ void plotNumberOfNumuEvents() {
 }
 
 
-void plotNumberOfNueEvents() {
+void plotNumberOfNueEvents(double L, double E) {
   int doAntiNu=0;
 
    Double_t oscPar[11]={0};
-   oscPar[OscPar::kL]=735; // km //MINOS
+   oscPar[OscPar::kL]=L;//735; // km //MINOS
    //   oscPar[OscPar::kL]=810; // km //NOvA
    //   oscPar[OscPar::kL]=2300; // km //LBNO
    oscPar[OscPar::kTh23]=0.705; //From PDG, extracted from sin^2(theta_23)=0.42, will loop over this
@@ -136,7 +136,7 @@ void plotNumberOfNueEvents() {
    oscPar[OscPar::kDelta]=0; //Fix at zero for now
    oscPar[OscPar::kDensity]=1.470; //In some units
    oscPar[OscPar::kNuAntiNu]=1; // 1 for neutrinos, -1 for antineutrinos
-   oscPar[9]=2; //Energy in GeV
+   oscPar[9]=E;//2; //Energy in GeV
    oscPar[10]=1000; //Normalisation
    if(doAntiNu) {
      inu=-12;
