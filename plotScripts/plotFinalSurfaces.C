@@ -172,10 +172,10 @@ void plotFinalSurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDel
  
   // This one just gets the best one
   //  TCanvas *canCont = getCanContSin2(histTotalNormal,histTotalInverted,histNQPQNormal,histNQPQInverted);
-  TCanvas *canContCheat = getCanContSin2(histTotalNormalCheat,histTotalInvertedCheat,histNQPQNormalCheat,histNQPQInvertedCheat);
+  TCanvas *canContCheat = getCanCont(histTotalNormalCheat,histTotalInvertedCheat,histNQPQNormalCheat,histNQPQInvertedCheat);
   canContCheat->SetName("canContCheat");
   canContCheat->SetTitle("canContCheat");
-  TCanvas *canCont = getCanContSin2(histTotalNormalBest,histTotalInvertedBest,histNQPQNormalBest,histNQPQInvertedBest);
+  TCanvas *canCont = getCanCont(histTotalNormalBest,histTotalInvertedBest,histNQPQNormalBest,histNQPQInvertedBest);
     
   canCont->Update();
   canCont->Modified();

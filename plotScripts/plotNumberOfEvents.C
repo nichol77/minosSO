@@ -20,7 +20,8 @@ Int_t inu,inunoosc;
 
 void plotNumberOfEvents()
 {
-  plotNumberOfNumuEvents();
+   //  plotNumberOfNumuEvents();
+   plotNumberOfNueEvents();
 
 }
 
@@ -33,6 +34,8 @@ void plotNumberOfNumuEvents() {
    oscPar[OscPar::kL]=735; // km //MINOS
    //   oscPar[OscPar::kL]=810; // km //NOvA
    //oscPar[OscPar::kL]=2300; // km //LBNO
+   
+   oscPar[OscPar::kL]=1300; //km //LBNE
    oscPar[OscPar::kTh23]=0.705; //From PDG, extracted from sin^2(theta_23)=0.42, will loop over this
    oscPar[OscPar::kTh12]=0.586; /// From PDG, extracted from sin^2(theta_12) = 0.306
    oscPar[OscPar::kTh13]=0.159; // From PDG, extracted from sin^2(theta_13) = 0.0251
@@ -41,7 +44,7 @@ void plotNumberOfNumuEvents() {
    oscPar[OscPar::kDelta]=0; //Fix at zero for now
    oscPar[OscPar::kDensity]=2.65; //In some units
    oscPar[OscPar::kNuAntiNu]=1; // 1 for neutrinos, -1 for antineutrinos
-   oscPar[9]=2; //Energy in GeV
+   oscPar[9]=3; //Energy in GeV
    oscPar[10]=1; //Normalisation
    oscPar[11]=-2.46e-3; //IH dm23
    if(doAntiNu) {
@@ -123,9 +126,10 @@ void plotNumberOfNueEvents() {
   int doAntiNu=0;
 
    Double_t oscPar[11]={0};
-   //OscPar::kL]=735; // km //MINOS
+   oscPar[OscPar::kL]=735; // km //MINOS
    //   oscPar[OscPar::kL]=810; // km //NOvA
-   oscPar[OscPar::kL]=2300; // km //LBNO
+   //   oscPar[OscPar::kL]=2300; // km //LBNO
+   //oscPar[OscPar::kL]=1300; // km //LBNE
    oscPar[OscPar::kTh23]=0.705; //From PDG, extracted from sin^2(theta_23)=0.42, will loop over this
    oscPar[OscPar::kTh12]=0.586; /// From PDG, extracted from sin^2(theta_12) = 0.306
    oscPar[OscPar::kTh13]=0.159; // From PDG, extracted from sin^2(theta_13) = 0.0251
@@ -215,7 +219,7 @@ void plotNumberOfNueEvents() {
    framey->GetXaxis()->SetRangeUser(0.4,1.2);
    framey->GetYaxis()->SetNoExponent(1);
 
-   int frameTop=200;
+   int frameTop=120;
    if(doAntiNu)
      frameTop/=3.;
    framey->GetYaxis()->SetRangeUser(0,frameTop);
