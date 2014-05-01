@@ -15,7 +15,7 @@
 
 int main(int argc, char **argv) 
 {
-   if(argc<7) {
+   if(argc<5) {
       std::cerr << "Usage\n\t" << argv[0] << " <outputFile> <runTag> <outTag> <input dir> <rw file>\n";
       return -1;
    }
