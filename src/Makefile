@@ -24,7 +24,7 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 OBJECTS = OscCalc.o NuDstLooper.o
 
 
-all : makePredictionsMultiFile addPredictionsFiles makePassTreeMultiFile
+all : makePredictionsMultiFile addPredictionsFiles makePassTreeMultiFile loopOverPassTreeMakePredictions
 
 
 makePredictionsMultiFile : $(OBJECTS) makePredictionsMultiFile.$(SRCSUF)
@@ -34,6 +34,11 @@ makePredictionsMultiFile : $(OBJECTS) makePredictionsMultiFile.$(SRCSUF)
 makePassTreeMultiFile : $(OBJECTS) makePassTreeMultiFile.$(SRCSUF)
 	@echo "<**Compiling**> "  
 	$(LD)  $(CXXFLAGS) $(LDFLAGS) makePassTreeMultiFile.$(SRCSUF) $(OBJECTS)  $(LIBS) -o $@
+
+
+loopOverPassTreeMakePredictions : $(OBJECTS) loopOverPassTreeMakePredictions.$(SRCSUF)
+	@echo "<**Compiling**> "  
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) loopOverPassTreeMakePredictions.$(SRCSUF) $(OBJECTS)  $(LIBS) -o $@
 
 
 addPredictionsFiles : $(OBJECTS) addPredictionsFiles.$(SRCSUF)
