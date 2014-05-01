@@ -53,7 +53,7 @@ int main(int argc, char **argv)
   char histName[180];
   
   
-  TFile *fpRat = new TFile("/home/rjn/minos/ccPlusNc/ndRatios/NDRatio.root");
+  TFile *fpRat = new TFile("/home/rjn/minos/ccPlusNc/ndRatios/NDRatioNew.root");
   sprintf(histName,"histEnergyNQ_%s_nd_data_over_mc_ratio",runTag);
   TH1D *ndRatNQ = (TH1D*) fpRat->Get(histName);
   if(!ndRatNQ) {

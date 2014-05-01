@@ -6,17 +6,17 @@
 
 
 
-#define MAX_DELTA_INDEX 8
-#define MAX_T13_INDEX 10
+#define MAX_DELTA_INDEX 4
+#define MAX_T13_INDEX 1
 #define MAX_DMI_INDEX 100
 #define MAX_T23_INDEX 100
 #define MAX_SIN2_INDEX 101
 
-#define MIN_T13 0.1
+#define MIN_T13 1.45425819453369298e-01
 #define T13_STEP_SIZE 0.01
 
 #define MIN_DELTA 0
-#define DELTA_STEP_SIZE TMath::PiOver4()
+#define DELTA_STEP_SIZE TMath::PiOver2()
 
 
 #define MIN_DM2 -3e-3
