@@ -643,6 +643,351 @@ void NuDstLooper::MakePredicitions(char *fileName, TH1D *ndRatioNQ, TH1D  *ndRat
 }
 
 
+void NuDstLooper::MakePassTree(char *fileName, TH1D *ndRatioNQ, TH1D  *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, char *tag, TH1D *histRwNumu, TH1D *histRwNumubar, TH1D *histRwNue, TH1D *histRwNuebar)
+{
+   if (fChain == 0) return;
+
+
+   int isData=0;
+
+   //The bin edges.
+   Double_t binEdge[]={0,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12,12.25,12.5,12.75,13,13.25,13.5,13.75,14,14.25,14.5,14.75,15,15.25,15.5,15.75,16,16.25,16.5,16.75,17,17.25,17.5,17.75,18,18.25,18.5,18.75,19,19.25,19.5,19.75,20,21,22,23,24,25,26,27,28,29,30,32,34,36,38,40,42,44,46,48,50,200};
+
+   Long64_t nentries = fChain->GetEntries();
+ 
+   //No this is the passTree file name
+   TFile *fp = new TFile(fileName,"RECREATE");
+   char histName[180];
+   if(tag)
+      sprintf(histName,"histNoOscNQ_%s",tag);
+   else
+      sprintf(histName,"histNoOscNQ");
+   TH1D *histNoOscNQ = new TH1D(histName,"histNoOscNQ",100,binEdge);
+
+   if(tag)
+      sprintf(histName,"histNoOscPQ_%s",tag);
+   else
+      sprintf(histName,"histNoOscPQ");
+   TH1D *histNoOscPQ = new TH1D(histName,"histNoOscPQ",100,binEdge);
+
+   if(tag)
+      sprintf(histName,"histNoOscNC_%s",tag);
+   else
+      sprintf(histName,"histNoOscNC");
+   TH1D *histNoOscNC = new TH1D(histName,"histNoOscNC",100,binEdge);
+
+   if(tag)
+      sprintf(histName,"histNoOscNCTrack_%s",tag);
+   else
+      sprintf(histName,"histNoOscNCTrack");
+   TH1D *histNoOscNCTrack = new TH1D(histName,"histNoOscNCTrack",100,binEdge);
+   
+
+   Double_t energy,fnWeight;
+   Int_t cutId;
+   Bool_t goodNCCandidate=0;
+   TTree *passTree = new TTree("passTree","Only passing events");
+   passTree->Branch("iaction",&iaction,"iaction/I");
+   passTree->Branch("ntrk",&ntrk,"ntrk/I");
+   passTree->Branch("inu",&inu,"inu/I");
+   passTree->Branch("inunoosc",&inunoosc,"inunoosc/I");
+   passTree->Branch("energy",&energy,"energy/D");
+   passTree->Branch("fnWeight",&fnWeight,"fnWeight/D");
+   passTree->Branch("cutId",&cutId,"cutId/I");
+   passTree->Branch("goodNCCandidate",&goodNCCandidate,"goodNCCandidate/O");
+   passTree->Branch("charge",&charge,"charge/I");
+   passTree->Branch("rw",&rw,"rw/F");
+   passTree->Branch("energyMC",&energyMC,"energyMC/F");
+   
+
+   int numStars=100;
+   int starEvery=nentries/numStars;
+   if(starEvery==0) starEvery++;
+   Long64_t nbytes = 0, nb = 0;
+   int countCutDQ=0;
+   int countCutGoodBeam=0;
+   int countCutCoilIsOk=0;
+   int countCutLI=0;
+   int countCutHorn=0;
+   int countCutFidVol=0;
+   int countCutRoID=0;
+   int countCutTrackRec=0;
+   int countCutNTrk=0;
+   int countCutQP=0;
+   int countCutTrkFitPass=0;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      if(jentry%starEvery==0) std::cerr << "*";
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+      // if (Cut(ientry) < 0) continue;
+     
+      cutId=getCutId(isData,&goodNCCandidate);
+
+      if(cutId==0 || goodNCCandidate) {
+
+	double newRw=1;
+	if(histRwNuebar) {
+	   if(inunoosc==14) newRw=getBinContent(energyMC,histRwNumu,binEdge);
+	   if(inunoosc==-14) newRw=getBinContent(energyMC,histRwNumubar,binEdge);
+	   if(inunoosc==12) newRw=getBinContent(energyMC,histRwNue,binEdge);
+	   if(inunoosc==-12) newRw=getBinContent(energyMC,histRwNuebar,binEdge);
+	}
+   	rw*=newRw;
+	energy=trkEn+shwEn;
+	fnWeight=1;
+	 //First up fill the no osc histograms
+	 if(cutId==0 && charge==1) {
+	    fnWeight=getBinContent(energy,ndRatioPQ,binEdge);
+	    if(inu==inunoosc)
+	       histNoOscPQ->Fill(energy,rw*fnWeight);
+	 }
+	 else if(cutId==0){
+	    fnWeight=getBinContent(energy,ndRatioNQ,binEdge);
+	    if(inu==inunoosc)
+	       histNoOscNQ->Fill(energy,rw*fnWeight);
+	 }
+	 else if(goodNCCandidate) {
+	    energy=shwEnLinCCCor;
+	    if(ntrk>0) {
+	       energy+=trkEn;
+	       fnWeight=getBinContent(energy,ndRatioNCTrack,binEdge);
+	       if(inu==inunoosc)
+		  histNoOscNCTrack->Fill(energy,rw*fnWeight);
+	    }
+	    else {
+	       fnWeight=getBinContent(energy,ndRatioNC,binEdge);
+	       if(inu==inunoosc)
+		  histNoOscNC->Fill(energy,rw*fnWeight);
+	    }	    
+	 }
+	 passTree->Fill();      
+	
+      }	    	    	 
+      else {
+	 if(cutId&0x1) 
+	    countCutDQ++;
+	 if(cutId&0x2)
+	    countCutGoodBeam++;
+	 if(cutId&0x4) 
+	    countCutCoilIsOk++;
+	 if(cutId&0x8)
+	    countCutLI++;
+	 if(cutId&0x10)
+	    countCutHorn++;
+	 if(cutId&0x20)
+	    countCutFidVol++;
+	 if(cutId&0x40)
+	    countCutRoID++;
+	 if(cutId&0x80)
+	    countCutTrackRec++;
+	 if(cutId&0x100)
+	    countCutNTrk++;
+	 if(cutId&0x200)
+	    countCutQP++;
+	 if(cutId&0x400)
+	    countCutTrkFitPass++;
+      }
+   }
+   std::cerr << "\n";
+   std::cout << "histNoOscNQ " << histNoOscNQ->GetEntries() << "\t" << histNoOscNQ->GetMean()  << "\t" << histNoOscNQ->GetRMS() << "\n"; 
+
+   std::cout << "countCutDQ \t" << countCutDQ << "\n";
+   std::cout << "countCutGoodBeam \t" << countCutGoodBeam << "\n";
+   std::cout << "countCutCoilIsOk \t" << countCutCoilIsOk << "\n";
+   std::cout << "countCutLI \t" << countCutLI << "\n";
+   std::cout << "countCutHorn \t" << countCutHorn << "\n";
+   std::cout << "countCutFidVol \t" << countCutFidVol << "\n";
+   std::cout << "countCutRoID \t" << countCutRoID << "\n";
+   std::cout << "countCutTrackRec \t" << countCutTrackRec << "\n";
+   std::cout << "countCutNTrk \t" << countCutNTrk << "\n";
+   std::cout << "countCutQP \t" << countCutQP << "\n";
+   std::cout << "countCutTrkFitPass \t" << countCutTrkFitPass << "\n";
+
+   histNoOscNQ->Write();
+   histNoOscPQ->Write();
+   histNoOscNC->Write();
+   histNoOscNCTrack->Write();
+   passTree->AutoSave();
+   fp->Close();
+}
+
+
+void  NuDstLooper::MakePredicitonsFromPassTree(char *passTreeFileName, char *fileName, int startDmiIndex, int endDmiIndex) {
+
+  Double_t oscPar[9]={0};
+  oscPar[OscPar::kL]=735; // km
+  oscPar[OscPar::kTh23]=0.705; //From PDG, extracted from sin^2(theta_23)=0.42, will loop over this
+  oscPar[OscPar::kTh12]=0.586; /// From PDG, extracted from sin^2(theta_12) = 0.306
+  oscPar[OscPar::kTh13]=0.159; // From PDG, extracted from sin^2(theta_13) = 0.0251
+  oscPar[OscPar::kDeltaM23]=2.35e-3; // in eV^2 will loop over
+  oscPar[OscPar::kDeltaM12]=7.58e-5; // in eV^2
+  oscPar[OscPar::kDelta]=0; //Fix at zero for now
+  oscPar[OscPar::kDensity]=2.65; //In some units
+  oscPar[OscPar::kNuAntiNu]=1; // 1 for neutrinos, -1 for antineutrinos
+
+  char histName[180];
+
+
+   //The bin edges.
+   Double_t binEdge[]={0,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12,12.25,12.5,12.75,13,13.25,13.5,13.75,14,14.25,14.5,14.75,15,15.25,15.5,15.75,16,16.25,16.5,16.75,17,17.25,17.5,17.75,18,18.25,18.5,18.75,19,19.25,19.5,19.75,20,21,22,23,24,25,26,27,28,29,30,32,34,36,38,40,42,44,46,48,50,200};
+
+
+  TFile *fpPass = TFile::Open(passTreeFileName);
+  Double_t energy,fnWeight;
+  Int_t cutId;
+  Bool_t goodNCCandidate=0;
+  TTree *passTree = (TTree*) fpPass->Get("passTree");
+  passTree->SetBranchAddress("iaction",&iaction);
+  passTree->SetBranchAddress("ntrk",&ntrk);
+  passTree->SetBranchAddress("inu",&inu);
+  passTree->SetBranchAddress("inunoosc",&inunoosc);
+  passTree->SetBranchAddress("energy",&energy);
+  passTree->SetBranchAddress("fnWeight",&fnWeight);
+  passTree->SetBranchAddress("cutId",&cutId);
+  passTree->SetBranchAddress("goodNCCandidate",&goodNCCandidate);
+  passTree->SetBranchAddress("charge",&charge);
+  passTree->SetBranchAddress("rw",&rw);
+  passTree->SetBranchAddress("energyMC",&energyMC);
+
+
+  TFile *fp = new TFile(fileName,"RECREATE");
+  
+  Double_t deltaCPArray[MAX_DELTA_INDEX];
+  Double_t t13Array[MAX_T13_INDEX];
+  Double_t dm2Array[MAX_DMI_INDEX];
+  Double_t t23Array[MAX_T23_INDEX];
+  
+   for(int dmi=0;dmi<MAX_DMI_INDEX;dmi++) {
+      Double_t dm2=getDeltaM2(dmi);
+      dm2Array[dmi]=dm2;
+   }
+   
+   for(int t23i=0;t23i<MAX_T23_INDEX;t23i++) {
+      Double_t t23=getT23(t23i);
+      t23Array[t23i]=t23;
+   }
+
+   for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+      Double_t t13=getT13(t13i);
+	    t13Array[t13i]=t13;
+   }
+
+   for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+      Double_t delta=getDeltaCP(deltai);   
+      deltaCPArray[deltai]=delta;
+   }
+   
+   Int_t passEntries= passTree->GetEntries();
+   std::cout << "Events in passTree " << passEntries << "\n";
+   fp->cd();
+   
+   //   for(int dmi=0;dmi<MAX_DMI_INDEX;dmi++) { 
+   //      for(int t23i=0;t23i<MAX_T23_INDEX;t23i++) {
+
+   char dirName[180];
+
+   //   for(int dmi=0;dmi<MAX_DMI_INDEX;dmi++) { 
+   for(int dmi=startDmiIndex;dmi<=endDmiIndex;dmi++) {
+      std::cerr << dmi << ":";
+      sprintf(dirName,"dmi%d",dmi);
+      fp->mkdir(dirName);
+      fp->cd(dirName);
+      for(int t23i=0;t23i<MAX_T23_INDEX;t23i++) {
+      //      for(int t23i=0;t23i<1;t23i++) {
+      std::cerr << "#";	       
+	sprintf(dirName,"t23i%d",t23i);
+	gDirectory->mkdir(dirName);
+	gDirectory->cd(dirName);
+	 for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {	    
+	    for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {  
+	       oscPar[OscPar::kTh23]=t23Array[t23i];
+	       oscPar[OscPar::kDeltaM23]=dm2Array[dmi];
+	       oscPar[OscPar::kTh13]=t13Array[t13i];
+	       oscPar[OscPar::kDelta]=deltaCPArray[deltai];
+	       sprintf(histName,"histPredNQ_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histPredNQ(histName,histName,100,binEdge);
+	       sprintf(histName,"histPredPQ_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histPredPQ(histName,histName,100,binEdge);
+	       sprintf(histName,"histPredNC_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histPredNC(histName,histName,100,binEdge);
+	       sprintf(histName,"histPredNCTrack_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histPredNCTrack(histName,histName,100,binEdge);
+	       sprintf(histName,"histCCPredNQ_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histCCPredNQ(histName,histName,100,binEdge);
+	       sprintf(histName,"histCCPredPQ_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histCCPredPQ(histName,histName,100,binEdge);
+	       sprintf(histName,"histCCPredNC_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histCCPredNC(histName,histName,100,binEdge);
+	       sprintf(histName,"histCCPredNCTrack_%d_%d_%d_%d",dmi,t23i,t13i,deltai);
+	       TH1D histCCPredNCTrack(histName,histName,100,binEdge);
+ 	       for(int passEntry=0;passEntry<passEntries;passEntry++) {
+		 passTree->GetEntry(passEntry);		  
+		 double oscWeight=getOscWeight(oscPar);
+		 //We will weight all events by oscWeight		  
+ 		  if(cutId==0 && charge==1) {
+ 		     histPredPQ.Fill(energy,rw*oscWeight*fnWeight);
+		     if(iaction==1 && TMath::Abs(inu)!=14) histCCPredPQ.Fill(energy,rw*oscWeight*fnWeight);
+ 		  }
+ 		  else if(cutId==0 && charge==-1) {
+		     histPredNQ.Fill(energy,rw*oscWeight*fnWeight);
+		     if(iaction==1 && TMath::Abs(inu)!=14) histCCPredNQ.Fill(energy,rw*oscWeight*fnWeight);
+ 		  }
+		  else if(goodNCCandidate && ntrk>0) {
+		     histPredNCTrack.Fill(energy,rw*oscWeight*fnWeight);
+		     if(iaction==1 && TMath::Abs(inu)!=14) histCCPredNCTrack.Fill(energy,rw*oscWeight*fnWeight);
+		  }
+		  else if(goodNCCandidate) {
+		     histPredNC.Fill(energy,rw*oscWeight*fnWeight);
+		     if(iaction==1 && TMath::Abs(inu)!=14) histCCPredNC.Fill(energy,rw*oscWeight*fnWeight);		     
+		  }		  
+ 	       }
+	       histPredNQ.Write();
+ 	       histPredPQ.Write();
+	       histPredNC.Write();
+	       histPredNCTrack.Write();
+	       histCCPredNQ.Write();
+	       histCCPredPQ.Write();
+	       histCCPredNC.Write();
+	       histCCPredNCTrack.Write();
+
+// 	       histPredNQ.Delete();
+// 	       histPredPQ.Delete();
+// 	       histPredNC.Delete();
+// 	       histPredNCTrack.Delete();
+// 	       histCCPredNQ.Delete();
+// 	       histCCPredPQ.Delete();
+// 	       histCCPredNC.Delete();
+// 	       histCCPredNCTrack.Delete();
+
+	    }
+	 }
+	 gDirectory->Close();
+      }
+      gDirectory->Close();
+   }
+   std::cerr << "\n";
+
+
+
+
+// 	 for(int dmi=0;dmi<MAX_DMI_INDEX;dmi++) {
+// 	    for(int t23i=0;t23i<MAX_T23_INDEX;t23i++) {
+// 	       for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+// 		  for(int deltai=0;deltai<MAX_T23_INDEX;deltai++) {
+// 	       }
+// 	    }
+// 	 }
+
+
+
+
+
+//   fp->Write();
+}
+
+
+
 Double_t NuDstLooper::getOscWeight(Double_t *par)
 {
    static OscCalc fOscCalc;

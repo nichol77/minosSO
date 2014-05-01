@@ -1860,6 +1860,9 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     MakeHistos(char *fileName,int isData=0,char *tag=0);
    virtual void     MakePredicitions(char *fileName, TH1D *ndRatioNQ, TH1D *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, int startDmiIndex, int endDmiIndex, char *tag=0, TH1D *histRwNumu=0, TH1D *histRwNumubar=0, TH1D *histRwNue=0, TH1D *histRwNuebar=0); 
+   virtual void     MakePassTree(char *fileName, TH1D *ndRatioNQ, TH1D *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, char *tag=0, TH1D *histRwNumu=0, TH1D *histRwNumubar=0, TH1D *histRwNue=0, TH1D *histRwNuebar=0); 
+   virtual void     MakePredicitonsFromPassTree(char *passTreeFileName, char *fileName, int startDmiIndex, int endDmiIndex);
+
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual Double_t getOscWeight(Double_t *par);
