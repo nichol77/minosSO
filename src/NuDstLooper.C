@@ -82,6 +82,9 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
       sprintf(histName,"histEnergyNCTrack");
    TH1D *histEnergyNCTrack = new TH1D(histName,"histEnergyNCTrack",100,binEdge);
 
+   TH1D *histEnergyNoRw = new TH1D("histEnergyNoRw","histEnergyNoRw",100,binEdge);
+   TH1D *histEnergyNQNoRw = new TH1D("histEnergyNQNoRw","histEnergyNQNoRw",100,binEdge);
+   TH1D *histEnergyPQNoRw = new TH1D("histEnergyPQNoRw","histEnergyPQNoRw",100,binEdge);
    TH1D *histTrueEnergyNumu = new TH1D("histTrueEnergyNumu","histTrueEnergyNumu",100,binEdge);
    TH1D *histTrueEnergyNumubar = new TH1D("histTrueEnergyNumubar","histTrueEnergyNumubar",100,binEdge);
    TH1D *histTrueEnergyNue = new TH1D("histTrueEnergyNue","histTrueEnergyNue",100,binEdge);
@@ -226,11 +229,14 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
 	 if(charge==-1) countPQ++;
 	 //Then it is a CC candidate event
 	 histEnergy->Fill(trkEn+shwEn,rw);
+	 histEnergyNoRw->Fill(trkEn+shwEn);
 	 if(charge==1) {
 	    histEnergyPQ->Fill(trkEn+shwEn,rw);
+	    histEnergyPQNoRw->Fill(trkEn+shwEn);
 	 }
 	 else {
 	    histEnergyNQ->Fill(trkEn+shwEn,rw);
+	    histEnergyNQNoRw->Fill(trkEn+shwEn);
 	 }
 	 if(!isData) {
 	    if(iaction==0) {
@@ -1005,7 +1011,7 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
    }
    if(isData) {
     
-      if(!goodBeamSntp ) {
+      if(!goodBeam ) {
 	 cutId+=0x2;
       }
       if(!coilIsOk ) {
@@ -1032,10 +1038,12 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
    if(!cutId) *goodNCCandidate=1;
 
    //Below here we are dealing solely with track related quantities
-   const double eps = 1/160.;
+   const double eps = 1./160.;
    // Cut on CC/NC PID
-   Bool_t goodPID=(roID > 0.25+eps) || (jmID > 0.5+eps);
+   //   Bool_t goodPID=(roID > 0.25+eps) || (jmID > 0.5+eps);
+   Bool_t goodPID=(roID > 0.3+eps);
   
+
    if(!goodPID) {
       cutId+=0x40;
       //	continue;
@@ -1058,8 +1066,9 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
   
    //These are the new track end cuts in the ND
    if(detector==1) {
-      if(xTrkEnd<0) goodTrack=0;
-      if(rTrkEnd<0.6) goodTrack=0;
+      if(xTrkEnd<=0.0) goodTrack=0;
+      if(rTrkEnd<=0.6) goodTrack=0;
+      if(containmentFlag==2) goodTrack=0;   ///New containment cut in ND
    }
   
   
