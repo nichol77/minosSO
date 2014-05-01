@@ -1068,7 +1068,7 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
    if(detector==1) {
       if(xTrkEnd<=0.0) goodTrack=0;
       if(rTrkEnd<=0.6) goodTrack=0;
-      if(containmentFlag==2) goodTrack=0;
+      if(containmentFlag==2) goodTrack=0;   ///New containment cut in ND
    }
   
   
