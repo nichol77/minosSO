@@ -40,12 +40,13 @@ void makeNearRatios()
   canRatioArray[3]=canNCTrackRat;
 
 
-  doARun("runI","runi",1,1,"Run I");
-  doARun("runII","runii",0,2,"Run II");
-  doARun("runIII","runiii",0,3,"Run III");
-  doARun("runV","runv",0,4,"Run V");
-  doARun("runVI","runvi",0,5,"Run VI");
-  doARun("runX","runx",0,6,"Run X");
+  // doARun("runI","runi",1,1,"Run I");
+  // doARun("runII","runii",0,2,"Run II");
+  // doARun("runIII","runiii",0,3,"Run III");
+  // doARun("runV","runv",0,4,"Run V");
+  // doARun("runVI","runvi",0,5,"Run VI");
+  // doARun("runX","runx",0,6,"Run X");
+  doARun("run11","minosplus",1,1,"MINOS+");
 
 }
 
@@ -100,8 +101,8 @@ void doARun(char *potTag, char *fileTag, int firstOne, int colourNum,char *legTa
 
   
   TFile *fpRat = 0;
-  if(firstOne) fpRat=new TFile("ndRatios/NDRatio.root","RECREATE");
-  else fpRat= new TFile("ndRatios/NDRatio.root","UPDATE");
+  if(firstOne) fpRat=new TFile("ndRatios/NDRatioNew.root","RECREATE");
+  else fpRat= new TFile("ndRatios/NDRatioNew.root","UPDATE");
   
 
 

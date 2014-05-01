@@ -14,20 +14,23 @@
 
 #define NUM_EXPS 1000
 
+#define DM_12 7.58e-5
+
 #include "src/paramFuncs.h"
 TH2D *marginaliseOtherWay(TH2D *inHistsNorm[MAX_T13_INDEX][MAX_DELTA_INDEX],TH2D *inHistsInv[MAX_T13_INDEX][MAX_DELTA_INDEX]);
-TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[], Int_t numHists, char *histName);
+TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[], Int_t numHists, const char *histName);
 void subtractMinimum(TH2D*histCombi);
-TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) ;
+TH2D *convertToSin2Theta23(TH2D *histInput, const char *histName) ;
+TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t normalOrInverted) ;
 Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue);
-void plotFinalSurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus);
+void plotAndySurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus);
 TCanvas *getCanCont(TH2D *histTotalNormal, TH2D *histTotalInverted, TH2D *histNQPQNormal, TH2D *histNQPQInverted) ;
 Double_t getT13PenaltyTerm(Double_t t13);
+TCanvas *getCanContAndy(TH2D *histTotalNormalIn, TH2D *histTotalInvertedIn, TH2D *histNQPQNormalIn, TH2D *histNQPQInvertedIn,TFile *fpOut, char *histTag);
 
-
-   Double_t trueDm;
-   Double_t trueT23;
-
+Double_t trueDm;
+Double_t trueT23;
+Double_t trueSin2T23;
 
 int getNiceColour(int index)
 {
@@ -59,25 +62,26 @@ Double_t simpleBilinearInterpolate(Double_t x[2], Double_t y[2], Double_t z[4], 
   return (a+b+c+d)/((x[1]-x[0])*(y[1]-y[0]));  
 }
 
-void plotFinalSurfaces()
+void plotAndySurfaces()
 {
 
-  plotFinalSurfaces(69,39,6,0,1000);
+  plotAndySurfaces(69,39,6,0,1000);
 }
 
 
-void plotFinalSurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus)
+void plotAndySurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus)
 {
    
    trueDm=1e3*getDeltaM2(fakeDmBin);
   trueT23=getT23(fakeT23Bin);
-  
+  trueSin2T23=TMath::Power(TMath::Sin(trueT23),2);
   
   gStyle->SetOptStat(0);
   //   gStyle->SetOptTitle(0);
   char histName[180];
   char fileName[180];
   
+
   if(doMinosPlus)
      sprintf(fileName,"finalSurfaces/finalPlots_%d_%d_%d_%d.root",fakeDmBin,fakeT23Bin,fakeT13Bin,fakeDeltaBin);
   else {
@@ -171,11 +175,15 @@ void plotFinalSurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDel
 
  
   // This one just gets the best one
-  //  TCanvas *canCont = getCanCont(histTotalNormal,histTotalInverted,histNQPQNormal,histNQPQInverted);
-  TCanvas *canContCheat = getCanCont(histTotalNormalCheat,histTotalInvertedCheat,histNQPQNormalCheat,histNQPQInvertedCheat);
-  canContCheat->SetName("canContCheat");
-  canContCheat->SetTitle("canContCheat");
-  TCanvas *canCont = getCanCont(histTotalNormalBest,histTotalInvertedBest,histNQPQNormalBest,histNQPQInvertedBest);
+  //  TCanvas *canCont = getCanContAndy(histTotalNormal,histTotalInverted,histNQPQNormal,histNQPQInverted);
+  //  TCanvas *canContCheat = getCanContAndy(histTotalNormalCheat,histTotalInvertedCheat,histNQPQNormalCheat,histNQPQInvertedCheat);
+  //  canContCheat->SetName("canContCheat");
+  //  canContCheat->SetTitle("canContCheat");
+  TFile *fpOut = new TFile("andyFile.root","UPDATE");
+  char *histTag[2]={"justMinos","minosPlus"};
+  
+
+  TCanvas *canCont = getCanContAndy(histTotalNormalBest,histTotalInvertedBest,histNQPQNormalBest,histNQPQInvertedBest,fpOut,histTag[doMinosPlus]);
     
   canCont->Update();
   canCont->Modified();
@@ -271,14 +279,14 @@ TH2D *marginaliseOtherWay(TH2D *inHistsNorm[MAX_T13_INDEX][MAX_DELTA_INDEX], TH2
 				 MAX_DELTA_INDEX,MIN_DELTA-0.5*DELTA_STEP_SIZE,MIN_DELTA+(MAX_DELTA_INDEX-0.5)*DELTA_STEP_SIZE);
    for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
       for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
-	 Int_t normx,normy,normz;
-	 Int_t invx,invy,invz;
+	Int_t normx=0,normy=0;//,normz;
+	Int_t invx=0,invy=0;//,invz;
 	 
-	 Int_t binNorm=inHistsNorm[t13i][deltai]->GetMinimumBin(normx,normy,normz);
+	 //	 Int_t binNorm=inHistsNorm[t13i][deltai]->GetMinimumBin(normx,normy,normz);
 	 Double_t normValue=inHistsNorm[t13i][deltai]->GetBinContent(normx,normy);
 	 
 
-	 Int_t binInv=inHistsInv[t13i][deltai]->GetMinimumBin(invx,invy,invz);
+	 //	 Int_t binInv=inHistsInv[t13i][deltai]->GetMinimumBin(invx,invy,invz);
 	 Double_t invValue=inHistsInv[t13i][deltai]->GetBinContent(invx,invy);
 	 
 	 if(normValue<invValue) {
@@ -302,7 +310,7 @@ TH2D *marginaliseOtherWay(TH2D *inHistsNorm[MAX_T13_INDEX][MAX_DELTA_INDEX], TH2
 
 
 
-TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[],Int_t numHists, char *histName)
+TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[],Int_t numHists, const char *histName)
 {  
   if(numHists==0) return NULL;
   TH2D *outHist=(TH2D*)inHists[0]->Clone(histName);
@@ -338,61 +346,102 @@ TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[],Int_t numHis
 
 
 
-TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) 
+TH2D *convertToSin2Theta23(TH2D *histInput, const char *histName) 
 {
-  
-  static Double_t lookupFirstTheta23[MAX_SIN2_INDEX]={0};
-  static Double_t lookupSecondTheta23[MAX_SIN2_INDEX]={0};
-  static int firstTime=1;
+   static Double_t inputTheta23[MAX_T23_INDEX]={0};
+   static Double_t lookupTheta23[100]={0};
+   static Int_t leftBin[100]={0};
+   static Int_t rightBin[100]={0};
+   static int firstTime=1;
+   
+   
+   for(int i=0;i<MAX_T23_INDEX;i++) {
+      inputTheta23[i]=histInput->GetXaxis()->GetBinCenter(i+1);
+   }
+
 
   TH2D *histOut = new TH2D(histName,histName,
-			   MAX_SIN2_INDEX,MIN_SIN2-0.5*SIN2_STEP_SIZE,MIN_SIN2+(MAX_SIN2_INDEX-0.5)*SIN2_STEP_SIZE,
-			   MAX_DMI_INDEX,1e3*(MIN_DM2-0.5*DM2_STEP_SIZE),1e3*(MIN_DM2+(MAX_DMI_INDEX-0.5)*DM2_STEP_SIZE));
+			   100,0.1,0.9,
+			   histInput->GetNbinsY(),histInput->GetYaxis()->GetBinLowEdge(1),histInput->GetYaxis()->GetBinUpEdge(histInput->GetNbinsY()));
   TAxis *histXaxis = histOut->GetXaxis();
-  //  TAxis *histYaxis = histOut->GetYaxis();
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     if(firstTime) {
+	lookupTheta23[sinBin-1]=TMath::ASin(TMath::Sqrt(histXaxis->GetBinCenter(sinBin)));
+	for(int i=0;i<MAX_T23_INDEX;i++) {
+	   if(inputTheta23[i]<lookupTheta23[sinBin-1]) {
+	      leftBin[sinBin-1]=i;
+	   }
+	   else if(inputTheta23[i]>lookupTheta23[sinBin-1]) {
+	      rightBin[sinBin-1]=i;
+	      break;
+	   }
+	}
+	//	std::cout << sinBin << "\t" << leftBin[sinBin-1] << "\t" <<rightBin[sinBin-1] << "\n";
+     }
+  }
   
 
-  //   Double_t aSliceBin[NUM_EXPS];
-  //   Double_t aSliceValue[NUM_EXPS];
-  //   Int_t testDmBin=77;
-  //   for(int sinBin=1;sinBin<=histInput->GetNbinsX();sinBin++) {    
-  //     aSliceBin[sinBin-1]=histXaxis->GetBinCenter(sinBin);
-  //     aSliceValue[sinBin-1]=histInput->GetBinContent(sinBin,testDmBin);
 
-  //   }
-  //   TCanvas *can = new TCanvas();
-  //   TGraph *grTest = new TGraph(histInput->GetNbinsX(),aSliceBin,aSliceValue);
-  //   grTest->Draw("alp");
-
-  //  std::cout << histOut << "\n";
-  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {    
-    if(firstTime) {
-      lookupFirstTheta23[sinBin-1]=getFirstT23(histXaxis->GetBinCenter(sinBin));
-      lookupSecondTheta23[sinBin-1]=getSecondT23(histXaxis->GetBinCenter(sinBin));      
-      //        std::cout << histXaxis->GetBinCenter(sinBin) << "\t" << lookupFirstTheta23[sinBin-1] << "\t" << lookupSecondTheta23[sinBin-1] << "\t" << histInput->GetXaxis()->GetBinCenter(getT23IFromT23(lookupFirstTheta23[sinBin-1])+1) << "\n" ;
-    }
-
-    //    Int_t firstBin=getT23IFromT23(lookupFirstTheta23[sinBin-1])+1;
-    //    Int_t secondBin=getT23IFromT23(lookupSecondTheta23[sinBin-1])+1;
-
-    for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
-      //       Double_t value1=histInput->GetBinContent(firstBin,dmBin);
-      //       Double_t value2=histInput->GetBinContent(secondBin,dmBin);
-      Double_t value1=th2dEval(histInput,lookupFirstTheta23[sinBin-1],histOut->GetYaxis()->GetBinCenter(dmBin));
-      Double_t value2=th2dEval(histInput,lookupSecondTheta23[sinBin-1],histOut->GetYaxis()->GetBinCenter(dmBin));
-
-      if(value2<value1) value1=value2;
-      histOut->SetBinContent(sinBin,dmBin,value1);
-       
-      //      std::cout << sinBin << "\t" << dmBin << "\t" << histXaxis->GetBinCenter(sinBin) << "\t" << histYaxis->GetBinCenter(dmBin) << "\n";
-    }
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
+	
+	Double_t value1=histInput->GetBinContent(leftBin[sinBin-1]+1,dmBin);
+	Double_t value2=histInput->GetBinContent(rightBin[sinBin-1]+1,dmBin);
+	Double_t value=simpleInterploate(inputTheta23[leftBin[sinBin-1]],value1,inputTheta23[rightBin[sinBin-1]],value2,lookupTheta23[sinBin-1]);
+	std::cout << sinBin << "\t" << dmBin << "\t" << value1 << "\t" << value2 << "\t"
+		  << value << "\n";
+	histOut->SetBinContent(sinBin,dmBin,value);
+     }
   }
   
   firstTime=0;
   return histOut;
 
+}
+
+
+TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t normalOrInverted) 
+{
+   Double_t lookupTheta23[81]={0};
+   Double_t lookupDm[61]={0};
+   
+   TH2D *histOut = new TH2D(histName,histName,
+			    81, 0.2975, 0.7025,
+			    61, 2.095e-3, 2.705e-3);
+   for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     Double_t sin2theta23=histOut->GetXaxis()->GetBinCenter(sinBin);
+     Double_t theta23=TMath::ASin(TMath::Sqrt(sin2theta23));
+     lookupTheta23[sinBin-1]=theta23;     
+   }
+   for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
+     Double_t fogliDm=histOut->GetYaxis()->GetBinCenter(dmBin);
+     //Normal hierarchy
+     Double_t dm32=fogliDm;
+     if(normalOrInverted==1) {
+       //Inverted  hierarchy
+       dm32=-1*(fogliDm+0.5*DM_12);
+     }     
+     lookupDm[dmBin-1]=dm32*1e3;
+   }
+
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
+	
+       Double_t value=th2dEval(histInput,lookupTheta23[sinBin-1],lookupDm[dmBin-1]);
+
+
+	std::cout << sinBin << "\t" << dmBin << "\t" << lookupTheta23[sinBin-1] << "\t" << lookupDm[dmBin-1] << "\t"
+		  << value << "\n";
+	histOut->SetBinContent(sinBin,dmBin,value);
+     }
+  }
+  
+  return histOut;
 
 }
+
+
+
 
 
 Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue) {
@@ -443,7 +492,7 @@ void subtractMinimum(TH2D*histCombi)
   }
 }
 
-TH2D *getNewHistogram(int normalOrInverted, char *histName) {
+TH2D *getNewHistogram(int normalOrInverted, const char *histName) {
   if(normalOrInverted==0) return getNewNormalHistogram(histName);
   else return getNewInvertedHistogram(histName);
 }
@@ -591,6 +640,167 @@ TCanvas *getCanCont(TH2D *histTotalNormal, TH2D *histTotalInverted, TH2D *histNQ
 
   //  leggy->AddEntry(histContNormalJustFHC90,"No RHC","l");
   leggy->Draw("same");
+
+  return canCont;
+}
+
+
+
+
+TCanvas *getCanContAndy(TH2D *histTotalNormalIn, TH2D *histTotalInvertedIn, TH2D *histNQPQNormalIn, TH2D *histNQPQInvertedIn,TFile *fpOut, char *histTag) 
+{
+
+  fpOut->cd();
+  char histName[180];
+  sprintf(histName,"%s_%s",histTotalNormalIn->GetName(),histTag);
+  TH2D *histTotalNormal=convertToSin2Theta23Andy(histTotalNormalIn,histName,0);
+  sprintf(histName,"%s_%s",histTotalInvertedIn->GetName(),histTag);
+   TH2D *histTotalInverted=convertToSin2Theta23Andy(histTotalInvertedIn,histName,1);
+   sprintf(histName,"%s_%s",histNQPQNormalIn->GetName(),histTag);
+   TH2D *histNQPQNormal=convertToSin2Theta23Andy(histNQPQNormalIn,histName,0);
+   sprintf(histName,"%s_%s",histNQPQInvertedIn->GetName(),histTag);
+   TH2D *histNQPQInverted=convertToSin2Theta23Andy(histNQPQInvertedIn,histName,1);
+
+
+  char canName[180];
+   
+  sprintf(canName,"canCont");
+  TCanvas *canCont  = new TCanvas(canName,canName,800,800);
+  //  gPad->SetLeftMargin(0.15);  
+  TH2D *histContNormalAll90 = (TH2D*) histTotalNormal->Clone("histContNormalAll90");
+  TH2D *histContInvertedAll90 = (TH2D*) histTotalInverted->Clone("histContInvertedAll90");
+  histContNormalAll90->SetTitle("");
+  histContInvertedAll90->SetTitle("");
+  Double_t val90All=histContNormalAll90->GetMinimum()+4.61;
+  if(histContInvertedAll90->GetMinimum()<histContNormalAll90->GetMinimum())
+     val90All=histContInvertedAll90->GetMinimum()+4.61;
+  
+  histContNormalAll90->SetContour(1,&val90All);
+  histContNormalAll90->SetLineColor(1);
+  histContNormalAll90->SetLineWidth(3);
+
+  histContInvertedAll90->SetContour(1,&val90All);
+  histContInvertedAll90->SetLineColor(1);
+  histContInvertedAll90->SetLineWidth(3);   
+
+
+  TH2D *histContNormalAll68 = (TH2D*) histTotalNormal->Clone("histContNormalAll68");
+  TH2D *histContInvertedAll68 = (TH2D*) histTotalInverted->Clone("histContInvertedAll68");
+  histContNormalAll68->SetTitle("");
+  histContInvertedAll68->SetTitle("");
+  Double_t val68All=histContNormalAll68->GetMinimum()+2.71;
+  if(histContInvertedAll68->GetMinimum()<histContNormalAll68->GetMinimum())
+     val68All=histContInvertedAll68->GetMinimum()+2.71;
+  
+  histContNormalAll68->SetContour(1,&val68All);
+  histContNormalAll68->SetLineColor(1);
+  histContNormalAll68->SetLineStyle(3);
+  histContNormalAll68->SetLineWidth(3);
+
+  histContInvertedAll68->SetContour(1,&val68All);
+  histContInvertedAll68->SetLineColor(1);
+  histContInvertedAll68->SetLineStyle(2);
+  histContInvertedAll68->SetLineWidth(3);   
+
+   
+  histContNormalAll90->GetXaxis()->SetTitle("sin^{2}(#theta_{23})");
+  histContNormalAll90->GetXaxis()->SetRangeUser(0.3,0.7);
+  histContNormalAll90->GetYaxis()->SetRangeUser(2.1,2.7);
+  histContNormalAll90->GetYaxis()->SetTitle("1/2 |#Delta m^{2}_{32} + #Delta m^{2}_{31}|  (eV^{2})");
+
+
+
+  TH2D *histContNormalNQPQ90 = (TH2D*) histNQPQNormal->Clone("histContNormalNQPQ90");
+  TH2D *histContInvertedNQPQ90 = (TH2D*) histNQPQInverted->Clone("histContInvertedNQPQ90");
+  Double_t val90NQPQ=histContNormalNQPQ90->GetMinimum()+4.61;
+  if(histContInvertedNQPQ90->GetMinimum()<histContNormalNQPQ90->GetMinimum()) 
+     val90NQPQ=histContInvertedNQPQ90->GetMinimum()+4.61;
+
+  histContNormalNQPQ90->SetContour(1,&val90NQPQ);
+  histContNormalNQPQ90->SetLineColor(getNiceColour(0));
+  histContNormalNQPQ90->SetLineWidth(3);
+
+
+  histContInvertedNQPQ90->SetContour(1,&val90NQPQ);
+  histContInvertedNQPQ90->SetLineColor(getNiceColour(0));
+  histContInvertedNQPQ90->SetLineWidth(3);
+  
+
+
+  TH2D *histContNormalNQPQ68 = (TH2D*) histNQPQNormal->Clone("histContNormalNQPQ68");
+  TH2D *histContInvertedNQPQ68 = (TH2D*) histNQPQInverted->Clone("histContInvertedNQPQ68");
+  Double_t val68NQPQ=histContNormalNQPQ68->GetMinimum()+2.71;
+  if(histContInvertedNQPQ68->GetMinimum()<histContNormalNQPQ68->GetMinimum()) 
+     val68NQPQ=histContInvertedNQPQ68->GetMinimum()+2.71;
+
+  histContNormalNQPQ68->SetContour(1,&val68NQPQ);
+  histContNormalNQPQ68->SetLineColor(getNiceColour(0));
+  histContNormalNQPQ68->SetLineStyle(3);
+  histContNormalNQPQ68->SetLineWidth(3);
+
+
+  histContInvertedNQPQ68->SetContour(1,&val68NQPQ);
+  histContInvertedNQPQ68->SetLineColor(getNiceColour(0));
+  histContInvertedNQPQ68->SetLineStyle(3);
+  histContInvertedNQPQ68->SetLineWidth(3);
+
+
+  histContNormalAll90->Draw("cont3 ");
+  //  histContNormalAll68->Draw("cont3 same");
+  histContNormalNQPQ90->Draw("cont3 same");
+  //  histContNormalNQPQ68->Draw("cont3 same");
+  
+  
+
+//   TGraph *grBest = new TGraph(numExps,t23ArrayTot,dm2ArrayTot);
+//   grBest->SetMarkerStyle(29);
+//   grBest->SetMarkerColor(kGreen+2);
+//   grBest->DrawClone("p");
+
+//   TGraph *grSecondBest = new TGraph(numExps,t23ArrayPQNQ,dm2ArrayPQNQ);
+//   grSecondBest->SetMarkerStyle(22);
+//   grSecondBest->SetMarkerColor(getNiceColour(0));
+//   // grSecondBest->DrawClone("p");
+  
+
+  histContInvertedAll90->SetLineColor(getNiceColour(2));
+  histContInvertedNQPQ90->SetLineColor(getNiceColour(3));
+  
+  histContInvertedAll90->Draw("cont3 same");
+  histContInvertedNQPQ90->Draw("cont3 same");
+  //  histContInvertedAll68->Draw("cont3 same");
+  //  histContInvertedNQPQ68->Draw("cont3 same");
+  //  grBest->DrawClone("p");
+  //  grSecondBest->DrawClone("p");
+  
+
+  TMarker *marky = new TMarker(trueSin2T23,trueDm,29);
+  marky->SetMarkerColor(kRed+2);
+  marky->SetMarkerSize(2);
+  if(trueDm>0)
+    canCont->cd(1);
+  marky->Draw("same");
+
+  
+  canCont->cd(1);
+  TLegend *leggy = new TLegend(0.45,0.6,0.7,0.9);
+  leggy->SetFillColor(0);
+  leggy->SetFillStyle(0);
+  leggy->SetBorderSize(0);
+  //  leggy->AddEntry("blank","90% C.L.","l");
+  leggy->AddEntry(histContNormalNQPQ90,"CC Selected (90%)","l");
+  leggy->AddEntry(histContNormalAll90,"CC+NC Selected (90%)","l");
+  leggy->AddEntry(marky,"Input Values","p");
+  //  leggy->AddEntry(grBest,"Fake Best Fits","p");
+
+  //  leggy->AddEntry(histContNormalJustFHC90,"No RHC","l");
+  leggy->Draw("same");
+
+  fpOut->cd();
+  histTotalNormal->Write();
+  histTotalInverted->Write();
+  histNQPQNormal->Write();
+  histNQPQInverted->Write();
 
   return canCont;
 }

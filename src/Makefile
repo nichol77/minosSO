@@ -24,12 +24,16 @@ GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 OBJECTS = OscCalc.o NuDstLooper.o
 
 
-all : makePredictionsMultiFile addPredictionsFiles
+all : makePredictionsMultiFile addPredictionsFiles makePassTreeMultiFile
 
 
 makePredictionsMultiFile : $(OBJECTS) makePredictionsMultiFile.$(SRCSUF)
 	@echo "<**Compiling**> "  
 	$(LD)  $(CXXFLAGS) $(LDFLAGS) makePredictionsMultiFile.$(SRCSUF) $(OBJECTS)  $(LIBS) -o $@
+
+makePassTreeMultiFile : $(OBJECTS) makePassTreeMultiFile.$(SRCSUF)
+	@echo "<**Compiling**> "  
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) makePassTreeMultiFile.$(SRCSUF) $(OBJECTS)  $(LIBS) -o $@
 
 
 addPredictionsFiles : $(OBJECTS) addPredictionsFiles.$(SRCSUF)
