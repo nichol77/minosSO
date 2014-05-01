@@ -19,6 +19,7 @@ TH2D *marginaliseOtherWay(TH2D *inHistsNorm[MAX_T13_INDEX][MAX_DELTA_INDEX],TH2D
 TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[], Int_t numHists, char *histName);
 void subtractMinimum(TH2D*histCombi);
 TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) ;
+TH2D *convertToAndy(TH2D *histInput, char *histName) ;
 Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue);
 void plotFinalSurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus);
 TCanvas *getCanCont(TH2D *histTotalNormal, TH2D *histTotalInverted, TH2D *histNQPQNormal, TH2D *histNQPQInverted) ;
@@ -334,6 +335,61 @@ TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[],Int_t numHis
     }
   }
   return outHist;
+}
+
+TH2D *convertToAndy(TH2D *histInput, char *histName) {
+
+  static Double_t inputTheta23[MAX_T23_INDEX]={0};
+  static Double_t lookupTheta23[100]={0};
+  static Int_t leftBin[100]={0};
+  static Int_t rightBin[100]={0};
+  static int firstTime=1;
+  
+  
+  for(int i=0;i<MAX_T23_INDEX;i++) {
+    inputTheta23[i]=histInput->GetXaxis()->GetBinCenter(i+1);
+  }
+  
+
+  TH2D *histOut = new TH2D(histName,histName,
+			   100,0.1,0.9,
+			   histInput->GetNbinsY(),histInput->GetYaxis()->GetBinLowEdge(1),histInput->GetYaxis()->GetBinUpEdge(histInput->GetNbinsY()));
+  TAxis *histXaxis = histOut->GetXaxis();
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     if(firstTime) {
+	lookupTheta23[sinBin-1]=TMath::ASin(TMath::Sqrt(histXaxis->GetBinCenter(sinBin)));
+	for(int i=0;i<MAX_T23_INDEX;i++) {
+	   if(inputTheta23[i]<lookupTheta23[sinBin-1]) {
+	      leftBin[sinBin-1]=i;
+	   }
+	   else if(inputTheta23[i]>lookupTheta23[sinBin-1]) {
+	      rightBin[sinBin-1]=i;
+	      break;
+	   }
+	}
+	//	std::cout << sinBin << "\t" << leftBin[sinBin-1] << "\t" <<rightBin[sinBin-1] << "\n";
+     }
+  }
+  
+
+
+  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
+     for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
+	
+	Double_t value1=histInput->GetBinContent(leftBin[sinBin-1]+1,dmBin);
+	Double_t value2=histInput->GetBinContent(rightBin[sinBin-1]+1,dmBin);
+	Double_t value=simpleInterploate(inputTheta23[leftBin[sinBin-1]],value1,inputTheta23[rightBin[sinBin-1]],value2,lookupTheta23[sinBin-1]);
+	std::cout << sinBin << "\t" << dmBin << "\t" << value1 << "\t" << value2 << "\t"
+		  << value << "\n";
+	histOut->SetBinContent(sinBin,dmBin,value);
+     }
+  }
+  
+  firstTime=0;
+  return histOut;
+
+
+
 }
 
 
