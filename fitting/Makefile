@@ -20,10 +20,16 @@ LDFLAGS      += -g $(ROOTLDFLAGS)
 LIBS          = $(ROOTLIBS)  $(SYSLIBS) 
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
-PROGRAMS=doGridSearchFake doGridSearchFakeExp doGridSearchFakeOnePoint makeFakeSurfaceFiles makeFinalPlots addFinalPlots
+PROGRAMS=doGridSearchFake doGridSearchFakeExp doGridSearchFakeOnePoint makeFakeSurfaceFiles makeFinalPlots addFinalPlots doGridSearchReal
 
 all : ${PROGRAMS}
 
+
+
+
+doGridSearchReal : $(ROOT_LIBRARY) doGridSearchReal.$(SRCSUF)
+	@echo "<**Compiling**> "  
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) doGridSearchReal.$(SRCSUF)  $(LIBS) -o $@
 
 doGridSearchFake : $(ROOT_LIBRARY) doGridSearchFake.$(SRCSUF)
 	@echo "<**Compiling**> "  
