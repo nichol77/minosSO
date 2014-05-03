@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 {
 
   if(argc<2) {
-    std::cerr << "Usage\n\t" << argv[0] << " <run> <dm bin> <t23 bin> <t13 bin> <delta bin>\n";
+    std::cerr << "Usage\n\t" << argv[0] << " <run> \n";
     return -1;
   }
   int run=atoi(argv[1]);
@@ -150,7 +150,7 @@ void doGridSearchReal(int run)
 
   Double_t minLL=1e9;
   Int_t minDmi,minT23i,minT13i,minDeltai;
-   Int_t histType=0,t23i=0,t13i=0,deltai=0;
+  Int_t histType=0,t23i=0,t13i=0,deltai=0,dmi=0;
   Double_t LL=0;
   TFile *fpOut=NULL;
   TTree *llTree=NULL;
@@ -158,6 +158,7 @@ void doGridSearchReal(int run)
   fpOut=TFile::Open(outName,"RECREATE");
   llTree = new TTree("llTree","llTree");
   llTree->Branch("histType",&histType,"histType/I");
+  llTree->Branch("dmi",&dmi,"dmi/I");
   llTree->Branch("t23i",&t23i,"t23i/I");
   llTree->Branch("t13i",&t13i,"t13i/I");
   llTree->Branch("deltai",&deltai,"deltai/I");
@@ -180,7 +181,7 @@ void doGridSearchReal(int run)
   }
   
   //Loop over all of the predictions
-  for(int dmi=0;dmi<MAX_DMI_INDEX;dmi++) {
+  for(dmi=0;dmi<MAX_DMI_INDEX;dmi++) {
     std::cerr << "\n" << dmi << ":";
     TFile *fpPreds[3]={0};
     for(int fileType=0;fileType<3;fileType++) {
@@ -188,7 +189,7 @@ void doGridSearchReal(int run)
       fpPreds[fileType] = TFile::Open(fileName);
     }
     
-    for(int t23i=0;t23i<MAX_T23_INDEX;t23i++) {  
+    for(t23i=0;t23i<MAX_T23_INDEX;t23i++) {  
       std::cerr << "*";
       TDirectory *fpDirs[3];      
       for(int fileType=0;fileType<3;fileType++) {
@@ -200,8 +201,8 @@ void doGridSearchReal(int run)
 
 
 
-      for(int t13i=0;t13i<MAX_T13_INDEX;t13i++) {
-	for(int deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
+      for(t13i=0;t13i<MAX_T13_INDEX;t13i++) {
+	for(deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
 	  
 	  //Loop over the four types of fake data
 	  for(int histType=0;histType<4;histType++) {		 
@@ -268,11 +269,18 @@ void doGridSearchReal(int run)
   std::cout << "\n\n*******************************************************************\n";
   std::cout << "Results:\n";
   std::cout << "minLL: " << minLL << "\n";
-  std::cout << "Delta m^2" << getDeltaM2(minDmi) << "\n";
-  std::cout << "Theta_23 " << getT23(minT23i) << "\n";
+  std::cout << "Delta m^2: " << getDeltaM2(minDmi) << "\n";
+  std::cout << "Theta_23: " << getT23(minT23i) << "\n";
   std::cout << "*******************************************************************\n";
-
-  fpOut->Write();
+  llTree->AutoSave();
+  for(int histType2=0;histType2<4;histType2++) {
+    for(int t13i2=0;t13i2<MAX_T13_INDEX;t13i2++) {
+      for(int deltai2=0;deltai2<MAX_DELTA_INDEX;deltai2++) {
+	histNormal[histType][t13i][deltai]->Write();
+	histInverted[histType][t13i][deltai]->Write();
+      }
+    }
+  }
   fpOut->Close();
   fpData->Close();
   
