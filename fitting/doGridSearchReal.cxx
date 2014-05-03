@@ -277,8 +277,8 @@ void doGridSearchReal(int run)
   for(int histType2=0;histType2<4;histType2++) {
     for(int t13i2=0;t13i2<MAX_T13_INDEX;t13i2++) {
       for(int deltai2=0;deltai2<MAX_DELTA_INDEX;deltai2++) {
-	histNormal[histType][t13i][deltai]->Write();
-	histInverted[histType][t13i][deltai]->Write();
+	histNormal[histType2][t13i][deltai]->Write();
+	histInverted[histType2][t13i][deltai]->Write();
       }
     }
   }
