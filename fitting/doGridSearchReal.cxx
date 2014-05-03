@@ -241,7 +241,7 @@ void doGridSearchReal(int run)
 	  }
 
 	  if(LLPQNQ<minLL) {
-	    minLL=LL;
+	    minLL=LLPQNQ;
 	    minDmi=dmi;
 	    minT23i=t23i;
 	    minT13i=t13i;
