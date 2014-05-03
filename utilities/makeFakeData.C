@@ -31,9 +31,9 @@ void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperi
   const char *fileTypeTag[3]={"main","nue","tau"};
   const char *potFileTypeTag[3]={"","Nue","Tau"};
 
-  const char *runNameArray[11]={"run1","run2","run3","run4","run5","run6","run7","run8","run9","run10","minosPlus"};
+  const char *runNameArray[11]={"run1","run2","run3","run4","run5","run6","run7","run8","run9","run10","run11"};
 
-  Int_t doRun[11]={1,1,1,1,0,0,0,0,0,0,1};  //run11 is minosPlus
+  Int_t doRun[11]={0,0,0,0,0,0,0,0,0,0,1};  //run11 is minosPlus
   
 
 
