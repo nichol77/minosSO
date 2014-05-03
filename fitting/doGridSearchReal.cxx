@@ -204,6 +204,8 @@ void doGridSearchReal(int run)
       for(t13i=0;t13i<MAX_T13_INDEX;t13i++) {
 	for(deltai=0;deltai<MAX_DELTA_INDEX;deltai++) {
 	  
+
+	  double LLPQNQ=0;
 	  //Loop over the four types of fake data
 	  for(int histType=0;histType<4;histType++) {		 
 	    TH1D histPred("histPred","histPred",100,binEdge);
@@ -227,14 +229,8 @@ void doGridSearchReal(int run)
 	    }		   		    
 	    
 	    Double_t LL=getLL(histData[histType],&histPred);
-	    if(LL<minLL) {
-	      minLL=LL;
-	      minDmi=dmi;
-	      minT23i=t23i;
-	      minT13i=t13i;
-	      minDeltai=deltai;
-	    }
-	    llTree->Fill();	  
+	    llTree->Fill();
+	    if(histType<2) LLPQNQ+=LL;
 	  
 	    if(dmArray[dmi]<0) {		    
 	      histInverted[histType][t13i][deltai]->Fill(t23Array[t23i],dmArray[dmi],LL );//llArray[histType][exp][dmi][t23i][t13i][deltai]);
@@ -242,6 +238,14 @@ void doGridSearchReal(int run)
 	    else {
 	      histNormal[histType][t13i][deltai]->Fill(t23Array[t23i], dmArray[dmi],LL);//llArray[histType][exp][dmi][t23i][t13i][deltai]);
 	    }
+	  }
+
+	  if(LLPQNQ<minLL) {
+	    minLL=LL;
+	    minDmi=dmi;
+	    minT23i=t23i;
+	    minT13i=t13i;
+	    minDeltai=deltai;
 	  }
 	}
       }
