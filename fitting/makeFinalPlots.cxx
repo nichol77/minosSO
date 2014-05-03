@@ -60,7 +60,8 @@ const char *histNameArray[4]={"histEnergyNQ","histEnergyPQ","histEnergyNC","hist
   //  const char *fileTypeTag[3]={"main","nue","tau"};
   //  const char *potFileTypeTag[3]={"","Nue","Tau"};
   //  Int_t doRun[10]={1,1,1,1,1,1,1,0,1,1};
-Int_t doRun[11]={1,1,1,1,0,0,0,0,0,0,0};
+//Int_t doRun[11]={1,1,1,1,0,0,0,0,0,0,0};   RJN 3rd May 2014
+Int_t doRun[11]={0,0,0,0,0,0,0,0,0,0,0};
 Int_t isRHC[11]={0,0,0,1,0,0,1,0,1,0,0};
 
 
