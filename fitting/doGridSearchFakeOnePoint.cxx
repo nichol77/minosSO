@@ -82,7 +82,7 @@ void doGridSearchFake(int run, int fakeDmBin, int fakeT23bin, int fakeT13Bin, in
   //  Int_t doRun[10]={1,0,0,0,0,0,0,0,0,0};
 
   
-  const char *runNameArray[11]={"run1","run2","run3","run4","run5","run6","run7","run8","run9","run10","minosPlus"};
+  const char *runNameArray[11]={"run1","run2","run3","run4","run5","run6","run7","run8","run9","run10","run11"};
 
 
   sprintf(dataPotName,"pot/%sFDDataPOT.txt",runNameArray[run-1]);
