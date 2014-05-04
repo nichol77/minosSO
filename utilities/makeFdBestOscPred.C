@@ -79,7 +79,7 @@ void makeFdBestOscPred(int dmBin, int t23Bin, int t13Bin, int deltaBin) ) {
       histIn[fileType][histType]->Scale(scaleFactor);
 
       if(histOut[histType]==0) {
-	sprintf(histName,"runxi_pred_%d_%d_%d_%d",dmBin,t23Bin,t13Bin,deltaBin);
+	sprintf(histName,"%s_run11_pred_%d_%d_%d_%d",predHistNameArray[histType],dmBin,t23Bin,t13Bin,deltaBin);
 	histOut[histType]=(TH1D*)histIn[fileType][histType]->Clone(histName);
 	histOut[histType]->SetName(histName);
 	histOut[histType]->SetTitle(histName);
