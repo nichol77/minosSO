@@ -84,7 +84,8 @@ int main(int argc, char **argv)
   if(doRw) {
      TFile *fpRw = new TFile(rwFilename);
      for(int i=0;i<4;i++) {
-	rwHists[i]=(TH1D*) fpRw->Get(rwHistNameArray[i]);
+       //	rwHists[i]=(TH1D*) fpRw->Get(rwHistNameArray[i]);
+       rwHists[i]=(TH1D*) fpRw->Get("nu3dfd_z");
 	std::cout << rwHists[i] << "\t" << rwHistNameArray[i] << "\n";
      }
   }
