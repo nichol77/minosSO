@@ -97,6 +97,7 @@ void makeFdBestOscPred(int dmBin, int t23Bin, int t13Bin, int deltaBin) ) {
   
   
   for(int histType=0;histType<4;histType++) {
+    std::cout << histOut[histType]->GetName() << "\t" << histOut[histType]->Integral() << "\n";
     histOut[histType]->Write();
   }
     
