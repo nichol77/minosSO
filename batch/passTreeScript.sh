@@ -29,4 +29,7 @@ cd /home/rjn/minos/ccPlusNc
 source /home/rjn/.bash_profile
 
 echo "./src/makePassTreeMultiFile ${OUTPUTFILE} ${RUNTAG} ${OUTTAG} ${INPUTDIR}"
-./src/makePassTreeMultiFile ${OUTPUTFILE} ${RUNTAG} ${OUTTAG} ${INPUTDIR}  /home/rjn/minos/ccPlusNc/farFiles/reweightRun11.root 
+./src/makePassTreeMultiFile ${OUTPUTFILE} ${RUNTAG} ${OUTTAG} ${INPUTDIR} 
+
+#The below line was used to reweight the wrong flux FD MC
+#./src/makePassTreeMultiFile ${OUTPUTFILE} ${RUNTAG} ${OUTTAG} ${INPUTDIR}  /home/rjn/minos/ccPlusNc/farFiles/reweightRun11.root 

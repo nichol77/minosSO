@@ -10,7 +10,7 @@ fi
 filebase=$1
 
 
-
+#for(( dmi=65; dmi<66; dmi++ ));
 for(( dmi=0; dmi<100; dmi++ ));
 do
     passtree=/unix/minos1/rjn/ccPlusNc/passTrees/run11/${filebase}Pass.root

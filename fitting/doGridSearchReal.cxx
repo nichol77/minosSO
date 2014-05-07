@@ -275,6 +275,10 @@ void doGridSearchReal(int run)
   std::cout << "minLL: " << minLL << "\n";
   std::cout << "Delta m^2: " << getDeltaM2(minDmi) << "\n";
   std::cout << "Theta_23: " << getT23(minT23i) << "\n";
+  std::cout << "minDmi: " << minDmi << "\n";
+  std::cout << "minT13i: " << minT13i << "\n";
+  std::cout << "minT23i: " << minT23i << "\n";
+  std::cout << "minDeltai: " << minDeltai << "\n";
   std::cout << "*******************************************************************\n";
   llTree->AutoSave();
   fpOut->cd();
