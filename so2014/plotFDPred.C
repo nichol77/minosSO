@@ -1,47 +1,11 @@
-
-void divideByBinWidth(TH1D *hist) {
-  for(int bin=1;bin<=hist->GetNbinsX();bin++) {
-    hist->SetBinContent(bin,hist->GetBinContent(bin)/hist->GetBinWidth(bin));
-  }
-}
-
-
-
-void printEventTable(TH1D *hist) {
-  std::cout << hist->GetName() << "\t" << hist->GetTitle() << "\n";
-
-  Double_t num0to4=0;
-  Double_t num4to8=0;
-  Double_t numAbove=0;
-  for(int bin=1;bin<=hist->GetNbinsX();bin++) {
-    double numEvents=hist->GetBinContent(bin);
-    double minE=hist->GetBinLowEdge(bin);
-    double maxE=hist->GetBinLowEdge(bin)+hist->GetBinWidth(bin);
-    if(maxE<=4) {
-      num0to4+=numEvents;
-    }
-    else if(maxE<=8) {
-      num4to8+=numEvents;
-    }
-    else {
-      numAbove+=numEvents;
-    }    
-  }
-
-  std::cout << "*******************************************************\n";
-  std::cout << "Total: " << hist->Integral() << "\n";
-  std::cout << "<4: " << num0to4 << "\n";
-  std::cout << "4-8: " << num4to8 << "\n";
-  std::cout << ">8: " << numAbove << "\n";
-}
-
+#include "so2014.h"
 void plotFDPred() {
-  plotFDPred(1,0,0,1,1,0,0);
-  plotFDPred(0,0,0,1,1,0,0);
+  plotFDPred(1,0,0,1,0,0,0,0);
+  plotFDPred(0,0,0,1,0,0,0,0);
 
 }
 
-void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int showWrongFlxuRw, int showJoe, int showMichelle) {
+void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showCoil,int showWrongFlux, int showWrongFlxuRw, int showJoe, int showMichelle) {
 
   TFile *fp = TFile::Open("minosplus_fd_mc.root");
   TFile *fpWrongFlux = TFile::Open("minosplus_fd_mc_old_flux.root");
@@ -50,6 +14,7 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   TFile *fpPredWrong = TFile::Open("minosplus_fd_pred_wrongflux.root");
   TFile *fpPredMichelle = TFile::Open("~/minos/so2014/fromMichelle/Spectra/oscfit.Neutrino2014.Spectra.NewTemplates.NoResBin.RealNDData.MinosPlusOnly.atmos.NumuOnly.normal.full.syst.noosc.root");
   TFile *fpBeamMatrix;
+  TFile *fpCoil = TFile::Open("ndDoubleRatioCoil.root");
 
   TH1D *histEnergy;
   TH1D *histEnergyWrongFlux;
@@ -57,13 +22,18 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   TH1D *histEnergyPred;
   TH1D *histEnergyPredWrong;
   TH1D *histEnergyPredWrongRw;
+  TH1D *histEnergyPredTestCoil;
   TH1D *histBeamMatrix;
   TH1D *histEnergyMichelle;
   if(pqNQ==1) {
+    TH1D *doubleRat = (TH1D*)fpCoil->Get("doubleRatioPQ");
+
     histEnergy = (TH1D*)fp->Get("histEnergyPQ_minosplus_fd_mc");
     histEnergyWrongFlux = (TH1D*)fpWrongFlux->Get("histEnergyPQ_minosplus_fd_mc");
     histEnergyNoRw = (TH1D*)fp->Get("histEnergyPQNoRw");
     histEnergyPred= (TH1D*)fpPred->Get("histNoOscPQ_runxi_pred_main");
+    histEnergyPredTestCoil = (TH1D*) histEnergyPred->Clone("histEnergyPredTestCoil");
+    histEnergyPredTestCoil->Multiply(doubleRat);
     histEnergyPredWrong= (TH1D*)fpPredWrong->Get("histNoOscPQ_runxi_pred_main");
     histEnergyPredWrongRw= (TH1D*)fpPredWrongRw->Get("histNoOscPQ_runxi_pred_main");
     histEnergyMichelle = (TH1D*)fpPredMichelle->Get("hist_run11_cv_numu_nubar");
@@ -77,10 +47,13 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
     histEnergyPredWrong->SetNameTitle("fnPredRw","PQ -F/N Prediction");
   }
   else if(pqNQ==0) {
+    TH1D *doubleRat = (TH1D*)fpCoil->Get("doubleRatioNQ");
     histEnergy = (TH1D*)fp->Get("histEnergyNQ_minosplus_fd_mc");
     histEnergyWrongFlux = (TH1D*)fpWrongFlux->Get("histEnergyNQ_minosplus_fd_mc");
     histEnergyNoRw = (TH1D*)fp->Get("histEnergyNQNoRw");
     histEnergyPred= (TH1D*)fpPred->Get("histNoOscNQ_runxi_pred_main");
+    histEnergyPredTestCoil = (TH1D*) histEnergyPred->Clone("histEnergyPredTestCoil");
+    histEnergyPredTestCoil->Multiply(doubleRat);
     histEnergyPredWrong= (TH1D*)fpPredWrong->Get("histNoOscNQ_runxi_pred_main");
     histEnergyPredWrongRw= (TH1D*)fpPredWrongRw->Get("histNoOscNQ_runxi_pred_main");
     histEnergyMichelle = (TH1D*)fpPredMichelle->Get("hist_run11_cv_numu_nu");
@@ -115,14 +88,14 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   histEnergy->Scale(potScaleMC);
   histEnergyWrongFlux->Scale(potScaleMCWrongFlux);
   histEnergyPred->Scale(potScaleMC);
-
+  histEnergyPredTestCoil->Scale(potScaleMC);
   histEnergyPredWrong->Scale(potScaleMCWrongFlux);
   histEnergyPredWrongRw->Scale(potScaleMCWrongFlux);
 
-  printEventTable(histEnergyPred);
-  printEventTable(histEnergyPredWrong);
-  printEventTable(histBeamMatrix);
-  printEventTable(histEnergyMichelle);
+  //  printEventTable(histEnergyPred);
+  //  printEventTable(histEnergyPredWrong);
+  //  printEventTable(histBeamMatrix);
+  //  printEventTable(histEnergyMichelle);
 
   // std::cout << "histEnergyPred->GetMean(): " << histEnergyPred->GetMean() << "\n";
   // std::cout << "histEnergyPred->GetRMS(): " << histEnergyPred->GetRMS() << "\n";
@@ -135,6 +108,7 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   // std::cout << "histEnergy->Integral(): " << histEnergy->Integral() << "\n";
 
   divideByBinWidth(histEnergyPred);
+  divideByBinWidth(histEnergyPredTestCoil);
   divideByBinWidth(histEnergyPredWrong);
   divideByBinWidth(histEnergyPredWrongRw);
   divideByBinWidth(histEnergy);
@@ -156,6 +130,8 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   histEnergyPred->GetXaxis()->SetTitle("Reconstructed Neutrino Energy (GeV)");
   histEnergyPred->GetYaxis()->SetTitle("Events/GeV");
   histEnergyPred->Draw();
+  histEnergyPredTestCoil->SetLineColor(8);
+  if(showCoil) histEnergyPredTestCoil->Draw("same");
   histEnergyPredWrong->SetLineColor(39);
   if(showWrongFlux) histEnergyPredWrong->Draw("same");
   histEnergyPredWrongRw->SetLineColor(9);
@@ -176,6 +152,7 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   leggy->SetFillStyle(0);
   leggy->SetBorderSize(0);
   leggy->AddEntry(histEnergyPred,"RJN FD Pred New FD MC");
+  if(showCoil) leggy->AddEntry(histEnergyPredTestCoil,"RJN FD Pred w/o Coil");
   if(showWrongFlux) leggy->AddEntry(histEnergyPredWrong,"RJN FD Pred Wrong Flux");
   if(showWrongFlxuRw) leggy->AddEntry(histEnergyPredWrongRw,"RJN FD Pred Wrong Flux RW");
   leggy->AddEntry(histEnergy,"RJN New FD MC");
@@ -191,6 +168,8 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
 
   TH1D *ratio = (TH1D*)histEnergyPred->Clone("ratio");
   ratio->Divide(histEnergy);
+  TH1D *ratio2 = (TH1D*)histEnergyPredTestCoil->Clone("ratio");
+  ratio2->Divide(histEnergy);
   TH1D *ratio3 = (TH1D*)histEnergyPredWrong->Clone("ratio3");
   ratio3->Divide(histEnergy);
   TH1D *ratio4 = (TH1D*)histBeamMatrix->Clone("ratio4");
@@ -209,6 +188,9 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showWrongFlux, int 
   ratio->SetYTitle("Pred / MC");
   ratio->SetLineColor(kBlack);
   ratio->Draw();
+  ratio2->SetLineColor(8);
+  if(showCoil) ratio2->Draw("same");
+
 
   ratio3->SetLineColor(39);
   if(showWrongFlux)ratio3->Draw("same");
