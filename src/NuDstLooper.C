@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 
+#define DO_COIL_CURV_TEST 1
 
 Double_t oscillationFormula(Double_t *x, Double_t *par);
 Double_t getBinContent(Double_t energy,TH1D *nearRatio, Double_t *binEdges);
@@ -226,6 +227,7 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
       }
 
       if(cutId==0) {
+	if(DO_COIL_CURV_TEST) setCCTrackEnergy();
 	 if(charge==-1) countPQ++;
 	 //Then it is a CC candidate event
 	 histEnergy->Fill(trkEn+shwEn,rw);
@@ -1066,9 +1068,11 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
   
    //These are the new track end cuts in the ND
    if(detector==1) {
-      if(xTrkEnd<=0.0) goodTrack=0;
-      if(rTrkEnd<=0.6) goodTrack=0;
-      if(containmentFlag==2) goodTrack=0;   ///New containment cut in ND
+     if(!DO_COIL_CURV_TEST) {
+       if(xTrkEnd<=0.0) goodTrack=0;
+       if(rTrkEnd<=0.6) goodTrack=0;
+     }
+     if(containmentFlag==2) goodTrack=0;   ///New containment cut in ND
    }
   
   
@@ -1086,6 +1090,14 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
 
    return cutId;
 
+
+}
+
+void NuDstLooper::setCCTrackEnergy() {
+  if(detector==1) {
+    if(xTrkEnd<=0. || rTrkEnd<=0.6) {
+      trkEn=trkEnCurv;
+    }
 
 }
 

@@ -1867,6 +1867,7 @@ public :
    virtual void     Show(Long64_t entry = -1);
    virtual Double_t getOscWeight(Double_t *par);
    virtual Int_t getCutId(Int_t isData, Bool_t *goodNCCandidate);
+   virtual void setCCTrackEnergy();
 };
 
 #endif

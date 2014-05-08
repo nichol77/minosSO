@@ -92,8 +92,8 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showCoil,int showWr
   histEnergyPredWrong->Scale(potScaleMCWrongFlux);
   histEnergyPredWrongRw->Scale(potScaleMCWrongFlux);
 
-  //  printEventTable(histEnergyPred);
-  //  printEventTable(histEnergyPredWrong);
+  printEventTable(histEnergyPred);
+  printEventTable(histEnergyPredTestCoil);
   //  printEventTable(histBeamMatrix);
   //  printEventTable(histEnergyMichelle);
 
