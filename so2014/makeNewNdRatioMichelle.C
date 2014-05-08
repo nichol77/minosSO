@@ -2,42 +2,40 @@
 
 
 void makeNewNdRatio() {
-  std::ifstream inNDMCPot("pot/run11NDMCPOT.txt");
-  std::ifstream inNDDataPot("pot/run11NDDataPOT.txt");
-  Double_t ndDataPot=0;   
-  inNDDataPot >> ndDataPot;
-  Double_t ndMCPot=0; 
-  inNDMCPot >> ndMCPot;
+  TFile *fpCoilData = TFile::Open("~/minos/so2014/fromMichelle/TestCoil/NDDataRun11HEDataSummary_real_CC.root");
+  TH1D *histCoilDataNQ = (TH1D*) fpCoilData->Get("RecoEnergy_ND");
+  TH1D *histCoilDataPQ = (TH1D*) fpCoilData->Get("RecoEnergyPQ_ND");
+  TH1D *histCoilDataPot = (TH1D*) fpCoilData->Get("hTotalPot");
+  Double_t dataPotCoil=histCoilDataPot->Integral();
+
+  TFile *fpCoilMC = TFile::Open("~/minos/so2014/fromMichelle/TestCoil/NDRun11HEMCSummary_Nominal_CC.root");
+  TH1D *histCoilMCNQ = (TH1D*) fpCoilMC->Get("RecoEnergy_ND");
+  TH1D *histCoilMCPQ = (TH1D*) fpCoilMC->Get("RecoEnergyPQ_ND");
+  TH1D *histCoilMCPot = (TH1D*) fpCoilMC->Get("hTotalPot");
+  Double_t MCPotCoil=histCoilMCPot->Integral();
+
+  histCoilDataNQ->Scale(1e17/dataPotCoil);
+  histCoilDataPQ->Scale(1e17/dataPotCoil);
+  histCoilMCNQ->Scale(1e17/MCPotCoil);
+  histCoilMCPQ->Scale(1e17/MCPotCoil);
 
 
+  TFile *fpDefaultData = TFile::Open("~/minos/so2014/fromMichelle/Default/NDDataRun11HEDataSummary_real_CC.root");
+  TH1D *histDefaultDataNQ = (TH1D*) fpDefaultData->Get("RecoEnergy_ND");
+  TH1D *histDefaultDataPQ = (TH1D*) fpDefaultData->Get("RecoEnergyPQ_ND");
+  TH1D *histDefaultDataPot = (TH1D*) fpDefaultData->Get("hTotalPot");
+  Double_t dataPotDefault=histDefaultDataPot->Integral();
 
-  TFile *fpCoilData = TFile::Open("minosplus_nd_data_curv.root");
-  TH1D *histCoilDataNQ = (TH1D*) fpCoilData->Get("histEnergyNQ_minosplus_nd_data");
-  TH1D *histCoilDataPQ = (TH1D*) fpCoilData->Get("histEnergyPQ_minosplus_nd_data");
+  TFile *fpDefaultMC = TFile::Open("~/minos/so2014/fromMichelle/Default/NDRun11HEMCSummary_Nominal_CC.root");
+  TH1D *histDefaultMCNQ = (TH1D*) fpDefaultMC->Get("RecoEnergy_ND");
+  TH1D *histDefaultMCPQ = (TH1D*) fpDefaultMC->Get("RecoEnergyPQ_ND");
+  TH1D *histDefaultMCPot = (TH1D*) fpDefaultMC->Get("hTotalPot");
+  Double_t MCPotDefault=histDefaultMCPot->Integral();
 
-  TFile *fpCoilMC = TFile::Open("minosplus_nd_mc_curv.root");
-  TH1D *histCoilMCNQ = (TH1D*) fpCoilMC->Get("histEnergyNQ_minosplus_nd_mc");
-  TH1D *histCoilMCPQ = (TH1D*) fpCoilMC->Get("histEnergyPQ_minosplus_nd_mc");
-
-  histCoilDataNQ->Scale(1e17/ndDataPot);
-  histCoilDataPQ->Scale(1e17/ndDataPot);
-  histCoilMCNQ->Scale(1e17/ndMCPot);
-  histCoilMCPQ->Scale(1e17/ndMCPot);
-
-
-  TFile *fpDefaultData = TFile::Open("minosplus_nd_data.root");
-  TH1D *histDefaultDataNQ = (TH1D*) fpDefaultData->Get("histEnergyNQ_minosplus_nd_data");
-  TH1D *histDefaultDataPQ = (TH1D*) fpDefaultData->Get("histEnergyPQ_minosplus_nd_data");   
-
-  TFile *fpDefaultMC = TFile::Open("minosplus_nd_mc.root");
-  TH1D *histDefaultMCNQ = (TH1D*) fpDefaultMC->Get("histEnergyNQ_minosplus_nd_mc");
-  TH1D *histDefaultMCPQ = (TH1D*) fpDefaultMC->Get("histEnergyPQ_minosplus_nd_mc");
-
-
-  histDefaultDataNQ->Scale(1e17/ndDataPot);
-  histDefaultDataPQ->Scale(1e17/ndDataPot);
-  histDefaultMCNQ->Scale(1e17/ndMCPot);
-  histDefaultMCPQ->Scale(1e17/ndMCPot);
+  histDefaultDataNQ->Scale(1e17/dataPotDefault);
+  histDefaultDataPQ->Scale(1e17/dataPotDefault);
+  histDefaultMCNQ->Scale(1e17/MCPotDefault);
+  histDefaultMCPQ->Scale(1e17/MCPotDefault);
 
 
   divideByBinWidth(histDefaultMCPQ);

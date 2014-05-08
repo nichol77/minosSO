@@ -227,9 +227,9 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
       }
 
       if(cutId==0) {
+	 //Then it is a CC candidate event
 	if(DO_COIL_CURV_TEST) setCCTrackEnergy();
 	 if(charge==-1) countPQ++;
-	 //Then it is a CC candidate event
 	 histEnergy->Fill(trkEn+shwEn,rw);
 	 histEnergyNoRw->Fill(trkEn+shwEn);
 	 if(charge==1) {
@@ -1097,8 +1097,8 @@ void NuDstLooper::setCCTrackEnergy() {
   if(detector==1) {
     if(xTrkEnd<=0. || rTrkEnd<=0.6) {
       trkEn=trkEnCurv;
-    }
-
+    }    
+  }
 }
 
 Double_t oscillationFormula(Double_t *x, Double_t *par)
