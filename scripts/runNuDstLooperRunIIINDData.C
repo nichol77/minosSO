@@ -8,6 +8,6 @@ void runNuDstLooperRunIIINDData()
    TChain *theChain = new TChain("s");
    theChain->Add("/minos/data/analysis/NuMuBar/DSTs/2010/R2.2/Data/near/dogwood3/RunIII/micro2010/NuDSTMicro*.root");
    NuDstLooper fred(theChain);
-   fred.MakeHistos("runiii_nd_data.root",1,"runiii_nd_data");
+   fred.MakeHistos("/minos/data/users/rjn/nearData/runiii_nd_data.root",1,"runiii_nd_data");
 
 }
