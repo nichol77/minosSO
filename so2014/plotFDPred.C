@@ -14,7 +14,7 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showCoil,int showWr
   TFile *fpPredWrong = TFile::Open("minosplus_fd_pred_wrongflux.root");
   TFile *fpPredMichelle = TFile::Open("~/minos/so2014/fromMichelle/Spectra/oscfit.Neutrino2014.Spectra.NewTemplates.NoResBin.RealNDData.MinosPlusOnly.atmos.NumuOnly.normal.full.syst.noosc.root");
   TFile *fpBeamMatrix;
-  TFile *fpCoil = TFile::Open("ndDoubleRatioCoil.root");
+  TFile *fpCoil = TFile::Open("ndDoubleRatioCoilCurv.root");
 
   TH1D *histEnergy;
   TH1D *histEnergyWrongFlux;
@@ -152,7 +152,7 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showCoil,int showWr
   leggy->SetFillStyle(0);
   leggy->SetBorderSize(0);
   leggy->AddEntry(histEnergyPred,"RJN FD Pred New FD MC");
-  if(showCoil) leggy->AddEntry(histEnergyPredTestCoil,"RJN FD Pred w/o Coil");
+  if(showCoil) leggy->AddEntry(histEnergyPredTestCoil,"RJN FD Pred w/o Coil Curv");
   if(showWrongFlux) leggy->AddEntry(histEnergyPredWrong,"RJN FD Pred Wrong Flux");
   if(showWrongFlxuRw) leggy->AddEntry(histEnergyPredWrongRw,"RJN FD Pred Wrong Flux RW");
   leggy->AddEntry(histEnergy,"RJN New FD MC");

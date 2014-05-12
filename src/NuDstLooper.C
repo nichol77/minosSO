@@ -10,7 +10,7 @@
 #include <iostream>
 #include <fstream>
 
-#define DO_COIL_CURV_TEST 1
+#define DO_COIL_CURV_TEST 0
 
 Double_t oscillationFormula(Double_t *x, Double_t *par);
 Double_t getBinContent(Double_t energy,TH1D *nearRatio, Double_t *binEdges);
@@ -226,6 +226,11 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
 
       }
 
+      //RJN over ride coil hole cut and set to curvature
+      if(DO_COIL_CURV_TEST && cutId==CUT_ID_COIL_HOLE) {
+	cutId=0;
+      }
+      
       if(cutId==0) {
 	 //Then it is a CC candidate event
 	if(DO_COIL_CURV_TEST) setCCTrackEnergy();
@@ -334,6 +339,8 @@ void NuDstLooper::MakeHistos(char *fileName,int isData,char *tag)
    //   selectedTree->AutoSave();
    fp->Write();
 }
+
+
 
 
 void NuDstLooper::MakePredicitions(char *fileName, TH1D *ndRatioNQ, TH1D  *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, int startDmiIndex, int endDmiIndex, char *tag, TH1D *histRwNumu, TH1D *histRwNumubar, TH1D *histRwNue, TH1D *histRwNuebar)
@@ -995,6 +1002,63 @@ void  NuDstLooper::MakePredicitonsFromPassTree(char *passTreeFileName, char *fil
 }
 
 
+void NuDstLooper::MakeTrackTree(char *fileName,int isData)
+{
+
+
+   Long64_t nentries = fChain->GetEntries();
+
+
+
+   TFile *fp = new TFile(fileName,"RECREATE");
+
+   Int_t cutId;
+   TTree *trackTree = (TTree*) new TTree("trackTree","trackTree");
+   trackTree->Branch("trkEn",&trkEn,"trkEn/F");
+   trackTree->Branch("trkEnRange",&trkEnRange,"trkEnRange/F");
+   trackTree->Branch("trkEnCurv",&trkEnCurv,"trkEnCurv/F");
+   trackTree->Branch("shwEn",&shwEn,"shwEn/F");
+   trackTree->Branch("shwEnLinCCCor",&shwEnLinCCCor,"shwEnLinCCCor/F");
+   trackTree->Branch("shwEnkNN",&shwEnkNN,"shwEnkNN/F");
+   trackTree->Branch("xEvtVtx",&xEvtVtx,"xEvtVtx/F");
+   trackTree->Branch("yEvtVtx",&yEvtVtx,"yEvtVtx/F");
+   trackTree->Branch("zEvtVtx",&zEvtVtx,"zEvtVtx/F");
+   trackTree->Branch("xTrkEnd",&xTrkEnd,"xTrkEnd/F");
+   trackTree->Branch("yTrkEnd",&yTrkEnd,"yTrkEnd/F");
+   trackTree->Branch("zTrkEnd",&zTrkEnd,"zTrkEnd/F");
+   trackTree->Branch("cutId",&cutId,"cutId/I");
+   
+
+   int numStars=100;
+   int starEvery=nentries/numStars;
+   if(starEvery==0) starEvery++;
+   Long64_t nbytes = 0, nb = 0;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      if(jentry%starEvery==0) std::cerr << "*";
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+
+      //Moved the cut code to seperate thing
+      Bool_t goodNCCandidate=false;
+      cutId=getCutId(isData,&goodNCCandidate);
+
+      if(qp==0 && hornIsReverse) charge=1;      
+      if(qp<0) charge=-1;
+      if(qp>0) charge=1;
+
+
+      if(cutId==0 || cutId==CUT_ID_COIL_HOLE) {
+	 //Then it is a CC candidate event
+	 trackTree->Fill();
+      }
+      
+   }
+   trackTree->AutoSave();
+   fp->Close();
+}
+
+
 
 Double_t NuDstLooper::getOscWeight(Double_t *par)
 {
@@ -1009,31 +1073,31 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
 {
    Int_t cutId=0;
    if(!(isGoodDataQuality || !cutOnDataQuality)) {
-      cutId+=0x1;
+      cutId+=CUT_ID_DATA_QUALITY;
    }
    if(isData) {
     
       if(!goodBeam ) {
-	 cutId+=0x2;
+	cutId+=CUT_ID_BEAM;
       }
       if(!coilIsOk ) {
-	 cutId+=0x4;
+	 cutId+=CUT_ID_COIL;
       }
       if(!(!isLI && litime==-1)) {
-	 cutId+=0x8;
+	 cutId+=CUT_ID_LI;
       }
     
       if(TMath::Abs(hornCur)<=155 || hornCur==-999999) {
-	 cutId+=0x10;
+	 cutId+=CUT_ID_HORN;
       }
    }
    if(!isInFidVolCC) {
-      cutId+=0x20;
+      cutId+=CUT_ID_FID_VOL;
    }
   
    const double phFrac = evtphsigcor/TMath::Max(snarlPulseHeight, 1e-10);
    if(!(detector == 0x01 || (detector==0x02 && (nevt < 2 || (nevt == 2 && phFrac > 0.75))))) {
-      cutId+=0x1000;
+      cutId+=CUT_ID_PH_FRAC;
    }
   
    *goodNCCandidate=0;
@@ -1047,44 +1111,46 @@ Int_t NuDstLooper::getCutId(Int_t isData, Bool_t *goodNCCandidate)
   
 
    if(!goodPID) {
-      cutId+=0x40;
+     cutId+=CUT_ID_PID;
       //	continue;
    }
 
    //sigqp == 1e-4 is an error code
    if(!(sigqp > 0.00011 || sigqp < 0.000099)) {
-      cutId+=0x800;
+      cutId+=CUT_ID_SIGQP;
    }
   
   
   
    if(ntrk<1) {
-      cutId+=0x100;
+     cutId+=CUT_ID_NTRK;
       //	continue;
    }
    Int_t goodTrack=0;  
    if(trkfitpass==1) goodTrack=1;
+   else cutId+=CUT_ID_TRK_FIT_PASS;
   
   
    //These are the new track end cuts in the ND
    if(detector==1) {
-     if(!DO_COIL_CURV_TEST) {
-       if(xTrkEnd<=0.0) goodTrack=0;
-       if(rTrkEnd<=0.6) goodTrack=0;
+     if(xTrkEnd<=0.0 || rTrkEnd<=0.6) {
+       goodTrack=0;
+       cutId+=CUT_ID_COIL_HOLE;
      }
-     if(containmentFlag==2) goodTrack=0;   ///New containment cut in ND
+     if(containmentFlag==2) {
+       goodTrack=0;   ///New containment cut in ND
+       cutId+=CUT_ID_ND_CONTAINMENT;
+     }
    }
   
   
    if(!goodTrack) {
-      cutId+=0x80;
       if(ntrk>0) *goodNCCandidate=0;
-      //continue;
    }
   
   
    if(detector!=1 && dirCosNu<=0.6) {
-      cutId+=0x2000;//continue;
+      cutId+=CUT_ID_DIR_COS;//continue;
    }
   
 

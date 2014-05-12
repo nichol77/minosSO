@@ -95,7 +95,7 @@ void makeNewNdRatio() {
 
 void plotRatios(TH1D *histDefault, TH1D *histCoil) {
 
-  TCanvas *can = new TCanvas("canRat","canRat");
+  TCanvas *can = new TCanvas("canRat","canRat",800,600);
   histCoil->SetLineColor(kRed);
   histDefault->SetXTitle("Reconstructed Energy (GeV)");
   histDefault->SetYTitle("Data / MC");
@@ -109,7 +109,7 @@ void plotRatios(TH1D *histDefault, TH1D *histCoil) {
   leggy->SetFillColor(0);
   leggy->SetFillStyle(0);
   leggy->SetBorderSize(0);
-  leggy->AddEntry(histCoil,"ND Data/MC w/o coil cut");
+  leggy->AddEntry(histCoil,"ND Data/MC w/o coil cut curv");
   leggy->AddEntry(histDefault,"ND Data/MC default");
   leggy->Draw();
 
@@ -120,7 +120,7 @@ void plotRatios(TH1D *histDefault, TH1D *histCoil) {
 void plotCoilHoleCut(TH1D *histDefaultDataNQ, TH1D *histDefaultMCNQ, 
 		     TH1D *histCoilDataNQ, TH1D *histCoilMCNQ) {
 
-  TCanvas *can = new TCanvas("canND","canND");
+  TCanvas *can = new TCanvas("canND","canND",800,600);
   histCoilMCNQ->SetLineColor(kRed);
   histCoilDataNQ->SetLineColor(kRed);
   histCoilDataNQ->SetXTitle("Reconstructed Energy (GeV)");
@@ -139,8 +139,8 @@ void plotCoilHoleCut(TH1D *histDefaultDataNQ, TH1D *histDefaultMCNQ,
   leggy->SetFillColor(0);
   leggy->SetFillStyle(0);
   leggy->SetBorderSize(0);
-  leggy->AddEntry(histCoilDataNQ,"ND Data w/o coil cut");
-  leggy->AddEntry(histCoilMCNQ,"ND MC w/o coil cut");
+  leggy->AddEntry(histCoilDataNQ,"ND Data w/o coil cut curv");
+  leggy->AddEntry(histCoilMCNQ,"ND MC w/o coil cut curv");
   leggy->AddEntry(histDefaultDataNQ,"ND Data default");
   leggy->AddEntry(histDefaultMCNQ,"ND MC default");
   leggy->Draw();

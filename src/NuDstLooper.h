@@ -14,6 +14,27 @@
 #include <TH1D.h>
 
 
+#define CUT_ID_DATA_QUALITY 0x1
+#define CUT_ID_BEAM 0x2
+#define CUT_ID_COIL 0x4
+#define CUT_ID_LI 0x8
+#define CUT_ID_HORN 0x10
+#define CUT_ID_FID_VOL 0x20
+#define CUT_ID_PID 0x40
+#define CUT_ID_TRK_FIT_PASS 0x80
+#define CUT_ID_NTRK 0x100
+#define CUT_ID_COIL_HOLE 0x200
+#define CUT_ID_ND_CONTAINMENT 0x400
+#define CUT_ID_SIGQP 0x800
+#define CUT_ID_PH_FRAC 0x1000
+#define CUT_ID_DIR_COS 0x2000
+
+
+
+
+
+
+
 class NuDstLooper {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -1859,6 +1880,7 @@ public :
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
    virtual void     MakeHistos(char *fileName,int isData=0,char *tag=0);
+   virtual void     MakeTrackTree(char *fileName,int isData=0);
    virtual void     MakePredicitions(char *fileName, TH1D *ndRatioNQ, TH1D *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, int startDmiIndex, int endDmiIndex, char *tag=0, TH1D *histRwNumu=0, TH1D *histRwNumubar=0, TH1D *histRwNue=0, TH1D *histRwNuebar=0); 
    virtual void     MakePassTree(char *fileName, TH1D *ndRatioNQ, TH1D *ndRatioPQ, TH1D *ndRatioNC, TH1D *ndRatioNCTrack, char *tag=0, TH1D *histRwNumu=0, TH1D *histRwNumubar=0, TH1D *histRwNue=0, TH1D *histRwNuebar=0); 
    virtual void     MakePredicitonsFromPassTree(char *passTreeFileName, char *fileName, int startDmiIndex, int endDmiIndex);
