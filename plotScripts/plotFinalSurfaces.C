@@ -707,9 +707,9 @@ TCanvas *getCanContSin2(TH2D *histTotalNormalIn, TH2D *histTotalInvertedIn, TH2D
   histContInvertedAll68->SetLineWidth(3);   
 
    
-  histContNormalAll90->GetXaxis()->SetTitle("sin^{2}(#theta_{23})");
   histContNormalAll90->GetXaxis()->SetRangeUser(0.3,0.7);
   histContNormalAll90->GetYaxis()->SetRangeUser(2.1,2.7);
+  histContNormalAll90->GetXaxis()->SetTitle("sin^{2}(#theta_{23})");
   histContNormalAll90->GetYaxis()->SetTitle("#Delta m^{2}_{23} (eV^{2})");
 
   histContInvertedAll90->GetXaxis()->SetRangeUser(0.3,0.7);

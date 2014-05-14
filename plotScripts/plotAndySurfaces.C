@@ -11,6 +11,7 @@
 #include "TStyle.h"
 #include "TMarker.h"
 #include "TLegend.h"
+#include "plotScripts/plotUtils.h"
 
 #define NUM_EXPS 1000
 
@@ -19,10 +20,6 @@
 #include "src/paramFuncs.h"
 TH2D *marginaliseOtherWay(TH2D *inHistsNorm[MAX_T13_INDEX][MAX_DELTA_INDEX],TH2D *inHistsInv[MAX_T13_INDEX][MAX_DELTA_INDEX]);
 TH2D *marginaliseOverHists(TH2D *inHists[], Double_t penaltyTerms[], Int_t numHists, const char *histName);
-void subtractMinimum(TH2D*histCombi);
-TH2D *convertToSin2Theta23(TH2D *histInput, const char *histName) ;
-TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t normalOrInverted) ;
-Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue);
 void plotAndySurfaces(int fakeDmBin, int fakeT23Bin,int fakeT13Bin, int fakeDeltaBin, int doMinosPlus);
 TCanvas *getCanCont(TH2D *histTotalNormal, TH2D *histTotalInverted, TH2D *histNQPQNormal, TH2D *histNQPQInverted) ;
 Double_t getT13PenaltyTerm(Double_t t13);
@@ -31,36 +28,6 @@ TCanvas *getCanContAndy(TH2D *histTotalNormalIn, TH2D *histTotalInvertedIn, TH2D
 Double_t trueDm;
 Double_t trueT23;
 Double_t trueSin2T23;
-
-int getNiceColour(int index)
-{
-  if(index>10) return index;
-  Int_t niceColours[11]={kAzure+2,kRed+1,kGreen+1,kMagenta+1,kCyan+1,kOrange+2,kGreen-2,12,40,20,41};
-  return niceColours[index];
-}
-
-
-
-Double_t simpleInterploate(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t x)
-{
-  return ((y2 - y1)* ((x - x1) / (x2-x1)) + y1);
-}
-
-Double_t simpleBilinearInterpolate(Double_t x[2], Double_t y[2], Double_t z[4], Double_t xp, Double_t yp) 
-{
-  //Here we have four points x[0],y[0] = z[0]
-  //Here we have four points x[0],y[1] = z[1]
-  //Here we have four points x[1],y[0] = z[2]
-  //Here we have four points x[1],y[1] = z[3]
-
-
-  Double_t a=z[0]*(x[1]-xp)*(y[1]-yp);
-  Double_t b=z[2]*(xp-x[0])*(y[1]-yp);
-  Double_t c=z[1]*(x[1]-xp)*(yp-y[0]);
-  Double_t d=z[3]*(xp-x[0])*(yp-y[0]);
-
-  return (a+b+c+d)/((x[1]-x[0])*(y[1]-y[0]));  
-}
 
 void plotAndySurfaces()
 {
@@ -400,45 +367,6 @@ TH2D *convertToSin2Theta23(TH2D *histInput, const char *histName)
 }
 
 
-TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t normalOrInverted) 
-{
-   Double_t lookupTheta23[81]={0};
-   Double_t lookupDm[61]={0};
-   
-   TH2D *histOut = new TH2D(histName,histName,
-			    81, 0.2975, 0.7025,
-			    61, 2.095e-3, 2.705e-3);
-   for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
-     Double_t sin2theta23=histOut->GetXaxis()->GetBinCenter(sinBin);
-     Double_t theta23=TMath::ASin(TMath::Sqrt(sin2theta23));
-     lookupTheta23[sinBin-1]=theta23;     
-   }
-   for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
-     Double_t fogliDm=histOut->GetYaxis()->GetBinCenter(dmBin);
-     //Normal hierarchy
-     Double_t dm32=fogliDm;
-     if(normalOrInverted==1) {
-       //Inverted  hierarchy
-       dm32=-1*(fogliDm+0.5*DM_12);
-     }     
-     lookupDm[dmBin-1]=dm32*1e3;
-   }
-
-  for(int sinBin=1;sinBin<=histOut->GetNbinsX();sinBin++) {
-     for(int dmBin=1;dmBin<=histOut->GetNbinsY();dmBin++) {
-	
-       Double_t value=th2dEval(histInput,lookupTheta23[sinBin-1],lookupDm[dmBin-1]);
-
-
-	std::cout << sinBin << "\t" << dmBin << "\t" << lookupTheta23[sinBin-1] << "\t" << lookupDm[dmBin-1] << "\t"
-		  << value << "\n";
-	histOut->SetBinContent(sinBin,dmBin,value);
-     }
-  }
-  
-  return histOut;
-
-}
 
 
 

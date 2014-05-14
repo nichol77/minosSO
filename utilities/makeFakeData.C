@@ -8,10 +8,10 @@
 #include "src/paramFuncs.h"
 
 
-void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperiments, int potScale=1);
+void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperiments, int potScale=1, TH1D **scaleHists=NULL);
 
 
-void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperiments, int potScale)
+void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperiments, int potScale, TH1D **scaleHists)
 {
   std::cout << "Generating " << numExperiments << " mock experiments for dm2=" << getDeltaM2(dmBin) << "\t" << " and theta23=" << getT23(t23Bin) << " and theta13=" << getT13(t13Bin) << " and delta=" << getDeltaCP(deltaBin) << "\n";
   
@@ -53,10 +53,23 @@ void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperi
     DataPotFile >> dataPOT;
     
     //Create output file
-    if(potScale>1) 
-       sprintf(outName,"fakeData/%s_scale%d_fake_%d_%d_%d_%d.root",runNameArray[runInd],potScale,dmBin,t23Bin,t13Bin,deltaBin);
-    else 
-       sprintf(outName,"fakeData/%s_fake_%d_%d_%d_%d.root",runNameArray[runInd],dmBin,t23Bin,t13Bin,deltaBin);
+    if(potScale>1) {
+      if(scaleHists) {
+	sprintf(outName,"fakeData/%s_distorted_scale%d_fake_%d_%d_%d_%d.root",runNameArray[runInd],potScale,dmBin,t23Bin,t13Bin,deltaBin);
+      }
+      else {
+	sprintf(outName,"fakeData/%s_scale%d_fake_%d_%d_%d_%d.root",runNameArray[runInd],potScale,dmBin,t23Bin,t13Bin,deltaBin);
+      }
+    }
+    else {
+      if(scaleHists) {
+	sprintf(outName,"fakeData/%s_distorted_fake_%d_%d_%d_%d.root",runNameArray[runInd],dmBin,t23Bin,t13Bin,deltaBin);
+      }
+      else {
+	sprintf(outName,"fakeData/%s_fake_%d_%d_%d_%d.root",runNameArray[runInd],dmBin,t23Bin,t13Bin,deltaBin);
+      }
+    }
+	
     TFile *fpOut = new TFile(outName,"RECREATE");
     if(!fpOut) {
       std::cerr << "unable to create " << outName << "\n";
@@ -100,7 +113,8 @@ void makeFakeData(int dmBin, int t23Bin, int t13Bin, int deltaBin, int numExperi
 	  std::cerr << "Can not open " << histName << " from " << fileName << "\n";
 	  continue;
 	}
-      
+	if(scaleHists) 
+	  histIn[fileType][histType]->Multiply(scaleHists[histType]);
 	histIn[fileType][histType]->Scale(scaleFactor);
 	numEvents[fileType][histType]=histIn[fileType][histType]->Integral();
 	std::cout << histName << "\t" <<numEvents[fileType][histType] << " events " << "\n";

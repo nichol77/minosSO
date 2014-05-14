@@ -20,16 +20,27 @@ LDFLAGS      += -g $(ROOTLDFLAGS)
 LIBS          = $(ROOTLIBS)  $(SYSLIBS) 
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
-PROGRAMS=doGridSearchFake doGridSearchFakeExp doGridSearchFakeOnePoint makeFakeSurfaceFiles makeFinalPlots addFinalPlots doGridSearchReal
+PROGRAMS=doGridSearchFake doGridSearchFakeExp doGridSearchFakeOnePoint makeFakeSurfaceFiles makeFinalPlots addFinalPlots doGridSearchReal  doGridSearchDistorted doGridSearchAlex
 
 all : ${PROGRAMS}
 
 
 
 
-doGridSearchReal : $(ROOT_LIBRARY) doGridSearchReal.$(SRCSUF)
+doGridSearchReal : $(ROOT_LIBRARY) doGridSearchReal.$(SRCSUF) gridSearch.cxx
 	@echo "<**Compiling**> "  
-	$(LD)  $(CXXFLAGS) $(LDFLAGS) doGridSearchReal.$(SRCSUF)  $(LIBS) -o $@
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) doGridSearchReal.$(SRCSUF) gridSearch.cxx  $(LIBS) -o $@
+
+
+
+doGridSearchAlex : $(ROOT_LIBRARY) doGridSearchAlex.$(SRCSUF) gridSearch.cxx
+	@echo "<**Compiling**> "  
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) doGridSearchAlex.$(SRCSUF) gridSearch.cxx  $(LIBS) -o $@
+
+
+doGridSearchDistorted : $(ROOT_LIBRARY) doGridSearchDistorted.$(SRCSUF) gridSearch.cxx
+	@echo "<**Compiling**> "  
+	$(LD)  $(CXXFLAGS) $(LDFLAGS) doGridSearchDistorted.$(SRCSUF) gridSearch.cxx  $(LIBS) -o $@
 
 doGridSearchFake : $(ROOT_LIBRARY) doGridSearchFake.$(SRCSUF)
 	@echo "<**Compiling**> "  

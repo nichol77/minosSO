@@ -81,7 +81,9 @@ inline Int_t getT23IFromT23(Double_t t23) {
 }
 
 inline Int_t getDmiFromDm(Double_t dm2) {
-   return TMath::Nint((dm2-MIN_DM2)/DM2_STEP_SIZE);
+   if(dm2<0)
+      return TMath::Nint((dm2-MIN_DM2)/DM2_STEP_SIZE);
+   return (MAX_DMI_INDEX/2)+TMath::Nint((dm2-MIN_POS_DM2)/DM2_STEP_SIZE);
 }
 
 inline TH2D *getNewInvertedHistogram(const char *outName) {
