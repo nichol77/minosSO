@@ -1,7 +1,7 @@
 #include "so2014.h"
 void plotFDPred() {
-  plotFDPred(1,0,0,1,0,0,0,0);
-  plotFDPred(0,0,0,1,0,0,0,0);
+  plotFDPred(1,0,0,0,0,0,1,0);
+  plotFDPred(0,0,0,0,0,0,1,0);
 
 }
 
@@ -107,13 +107,13 @@ void plotFDPred(int pqNQ, int showRawMC, int showTunedMC,int showCoil,int showWr
   // std::cout << "histEnergy->GetRMS(): " << histEnergy->GetRMS() << "\n";
   // std::cout << "histEnergy->Integral(): " << histEnergy->Integral() << "\n";
 
-  divideByBinWidth(histEnergyPred);
   divideByBinWidth(histEnergyPredTestCoil);
   divideByBinWidth(histEnergyPredWrong);
   divideByBinWidth(histEnergyPredWrongRw);
   divideByBinWidth(histEnergy);
   divideByBinWidth(histEnergyWrongFlux);
   divideByBinWidth(histEnergyNoRw);
+  divideByBinWidth(histEnergyPred);
   divideByBinWidth(histBeamMatrix);
   divideByBinWidth(histEnergyMichelle);
   

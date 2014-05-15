@@ -9,11 +9,19 @@ void divideByBinWidth(TH1D *hist) {
 
 
 void plotNDDataMC() {
-  plotNDDataMCPQ();
+  plotNDDataMCNQ();
 
 }
 
 void plotNDDataMCNQ() {
+  TFile *fpMC = TFile::Open("/Users/rjn/minos/so2014/fromMichelle/NDRun11HEMCSummaryNorm_Nominal_CC.root");
+  TH1D *histEnergyMC = (TH1D*) fpMC->Get("TrueEnergyCCOnlyEvents_ND");
+  TH1D *histEnergyMC2 = (TH1D*) fpMC->Get("TrueEnergyTrueCCFidEventsAll_ND");
+
+  TFile *fpFlux = TFile::Open("/Users/rjn/minos/so2014/fromMichelle/FluxFiles/Flavour1Run11HE.root");
+  TH1D *histEnergyFlux0 = (TH1D*) fpFlux->Get("TrueEnergyCCFluxRW_ND");
+
+
   TFile *fp = TFile::Open("minosplus_nd_mc.root");
   TH1D *histEnergyNQ = (TH1D*)fp->Get("histEnergyNQ_minosplus_nd_mc");
   TH1D *histEnergyNQNoRw = (TH1D*)fp->Get("histEnergyNQNoRw");
@@ -32,6 +40,9 @@ void plotNDDataMCNQ() {
   Double_t potScaleMC=1e17/ndMCPot;
   histEnergyNQNoRw->Scale(potScaleMC);
   histEnergyNQ->Scale(potScaleMC);
+  histEnergyMC->Scale(potScaleMC);
+  histEnergyMC2->Scale(0.37*potScaleMC);
+  histEnergyFlux0->Scale(6);
 
   Double_t potScaleData=1e17/ndDataPot;
   histEnergyNQNoRwData->Scale(potScaleData);
@@ -41,7 +52,9 @@ void plotNDDataMCNQ() {
   divideByBinWidth(histEnergyNQNoRwData);
   divideByBinWidth(histEnergyNQ);
   divideByBinWidth(histEnergyNQNoRw);
-  
+  divideByBinWidth(histEnergyMC);
+  divideByBinWidth(histEnergyMC2);
+  divideByBinWidth(histEnergyFlux0);
 
 
   TCanvas *can = new TCanvas("canND","canND",800,800);
@@ -56,6 +69,12 @@ void plotNDDataMCNQ() {
   histEnergyNQ->Draw("same");
   histEnergyNQNoRw->SetLineColor(kBlue);
   histEnergyNQNoRw->Draw("same");
+  histEnergyMC->SetLineColor(kGreen+2);
+  histEnergyMC->Draw("same hist");
+  histEnergyMC2->SetLineColor(kGreen+4);
+  histEnergyMC2->Draw("same hist");
+  histEnergyFlux0->SetLineColor(kOrange+2);
+  histEnergyFlux0->Draw("same hist");
 
   TLegend *leggy = new TLegend(0.6,0.6,0.88,0.9);
   leggy->SetFillColor(0);
@@ -64,6 +83,9 @@ void plotNDDataMCNQ() {
   leggy->AddEntry(histEnergyNQData,"RJN ND Data");
   leggy->AddEntry(histEnergyNQ,"RJN ND MC");
   leggy->AddEntry(histEnergyNQNoRw,"RJN ND MC No RW");
+  leggy->AddEntry(histEnergyMC,"True Energy");
+  leggy->AddEntry(histEnergyMC2,"True Energy, True Fid");
+  leggy->AddEntry(histEnergyFlux0,"Flux");
 
   leggy->Draw();
 
