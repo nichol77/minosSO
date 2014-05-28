@@ -10,8 +10,10 @@
 #include "TCanvas.h"
 #include "TDirectory.h"
 #include "TGraphAsymmErrors.h"
+#include "TGraphErrors.h"
 #include "TString.h"
 #include "TKey.h"
+#include "TLegend.h"
 #include "TROOT.h"
 #include "src/paramFuncs.h"
 
@@ -119,7 +121,19 @@ void plotAlexErrorBand() {
      
   }
 
+  TH1D *histNumEvents = new TH1D("histNumEvents","histNumEvents",400,1000,1400);
+  TH1D *histNumEventsPred = new TH1D("histNumEventsPred","histNumEventsPred",400,1000,1400);
+  TH1D *histPredDiff = new TH1D("histPredDiff","histPredDiff",200,-100,100);
 
+
+  int firstTime=1;
+
+  
+  Double_t energyVals[1000]={0};
+  Double_t ratioVals[1000]={0};
+  Double_t rmsVals[1000]={0};
+  Double_t ratioSqVals[1000]={0};
+  Int_t numRatios=0;
 
    for(int alexRun=0;alexRun<1000;alexRun++) {
       sprintf(inFile,"/unix/minos1/rjn/altHornCurr/farHornCurrNorm_%d.root",alexRun);
@@ -171,10 +185,33 @@ void plotAlexErrorBand() {
 	 //RJN -- Need to think if this is the correct thing to do, or if we should just hcange the data POT to match the Fake Data
 	 histData[histType]->Scale(dataPOT/hTotalPotData->Integral()); 
 
+	 
+	 if(histType==0) {
+	   histNumEvents->Fill(histData[histType]->Integral());
+	   histNumEventsPred->Fill(histNewPred[histType]->Integral());
+	   histPredDiff->Fill(histData[histType]->Integral()-histNewPred[histType]->Integral());
+	 }
+
 
 	 //Now we take the ratio of data to my scaled prediction
 	 TH1D *ratio = (TH1D*) histData[histType]->Clone();
 	 ratio->Divide(histNewPred[histType]);
+// 	 if(firstTime) {
+// 	   ratio->DrawClone();
+// 	   firstTime=0;
+// 	 }
+// 	 else
+// 	   ratio->DrawClone("same");
+
+
+	 for(int bin=1;bin<=ratio->GetNbinsX();bin++) {
+	   Double_t val=ratio->GetBinContent(bin);
+	   energyVals[bin-1]=ratio->GetBinCenter(bin);
+	   ratioVals[bin-1]+=val;
+	   ratioSqVals[bin-1]+=val*val;
+	 }
+	 numRatios++;
+
 
 	 fpError->cd();
 	 if(!histLowRatio[histType]) {
@@ -210,7 +247,26 @@ void plotAlexErrorBand() {
       fpData->Close();
 
    }
-
+   TCanvas *can2  = new TCanvas("can2","can2",800,800);
+   can2->Divide(1,2);
+   can2->cd(1);
+   histNumEvents->SetXTitle("Number of Events");
+   histNumEvents->Draw();
+   histNumEventsPred->SetLineColor(kRed+2);
+   histNumEventsPred->Draw("sames");
+   TLegend *leggy = new TLegend(0.7,0.7,0.9,0.9);
+   leggy->SetFillColor(0);
+   leggy->SetFillStyle(0);
+   leggy->SetBorderSize(0);
+   leggy->AddEntry(histNumEvents,"Fake Data","l");
+   leggy->AddEntry(histNumEventsPred,"Prediction","l");
+   leggy->Draw("same");
+   
+   can2->cd(2);
+   histPredDiff->SetXTitle("Num Events (Fake Data - Prediction)");
+   histPredDiff->Draw();
+   
+   
 
    Double_t xVals[1000];
    Double_t exLowVals[1000];
@@ -220,6 +276,10 @@ void plotAlexErrorBand() {
    Double_t eyHighVals[1000];
 
    for(int i=0;i<histHighRatio[0]->GetNbinsX();i++) {
+     ratioVals[i]/=numRatios;
+     ratioSqVals[i]/=numRatios;
+     rmsVals[i]=TMath::Sqrt(ratioSqVals[i]-ratioVals[i]*ratioVals[i]);
+
       int bin=i+1;
       xVals[i]=histHighRatio[0]->GetBinCenter(bin);
       exLowVals[i]=0.5*histHighRatio[0]->GetBinWidth(bin);
@@ -231,9 +291,9 @@ void plotAlexErrorBand() {
       eyLowVals[i]=yVals[i]-low;
       eyHighVals[i]=high-yVals[i];
 
-      std::cout << xVals[i] << "\t" << yVals[i] << "\t"
-		<< exLowVals[i] << "\t" << exHighVals[i] << "\t"
-		<< eyLowVals[i] << "\t" << eyHighVals[i] << "\n";
+//      std::cout << xVals[i] << "\t" << yVals[i] << "\t"
+//		<< exLowVals[i] << "\t" << exHighVals[i] << "\t"
+//		<< eyLowVals[i] << "\t" << eyHighVals[i] << "\n";
 
    }
    
@@ -252,6 +312,21 @@ void plotAlexErrorBand() {
 
    gr->SetName("grAlexError");
    gr->Write();
+
+
+
+   TCanvas *can3 = new TCanvas();
+   TGraphErrors *gr2= new TGraphErrors(histHighRatio[0]->GetNbinsX(),
+				       xVals,ratioVals,0,rmsVals);
+   gr2->Draw("al3");
+   gr2->GetXaxis()->SetTitle("Neutrino Energy (GeV)");
+   gr2->GetYaxis()->SetTitle("Error Band");
+   gr2->GetXaxis()->SetRangeUser(0,20);
+   gr2->GetYaxis()->SetRangeUser(0.8,1.2);
+   
+   gr2->SetName("grAlexMeanRMS");
+   gr2->Write();
+
    fpError->Write();
 
 }
