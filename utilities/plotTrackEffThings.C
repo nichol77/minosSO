@@ -1,9 +1,9 @@
 
 void plotTrackEffThings() {
 
-  // plotTrackEffThings("trkEn","Track Energy (GeV)","rw*((cutId==0 || cutId==128 || cutId==640 || cutId==512) )",
-  // 		     "rw*((cutId==0 || cutId==512) )",
-  // 		     "Track Fit Pass Eff.");
+   plotTrackEffThings("trkEn+shwEnkNN","Neutrino Energy (GeV)","rw*((cutId==0 || cutId==128 || cutId==640 || cutId==512) )",
+   		     "rw*((cutId==0) )",
+		      "All Cuts.");
   
 
    // plotTrackEffThings("trkEn","Track Energy (GeV)","rw*(cutId==0 || cutId==128 || cutId==640 || cutId==512)",
@@ -14,9 +14,9 @@ void plotTrackEffThings() {
   //   		     "rw*(cutId==0)",
   //   		     "New Coil Hole Cut Eff.");
 
-  plotTrackEffThings("trkEn+shwEnkNN","Reconstucted Neutrino Energy (GeV)","rw*(cutId==0 || cutId==128 || cutId==640 || cutId==512)",
-    		     "rw*(cutId==0)",
-    		     "New Coil Hole Cut Eff.");
+   //  plotTrackEffThings("zTrkEnd-zEvtVtx","Trk End - Evt Vtx (m)","rw*(cutId==0 || cutId==128 || cutId==640 || cutId==512)",
+   //    		     "rw*(cutId==0)",
+   //    		     "New Coil Hole Cut Eff.");
 }
 
 
@@ -90,6 +90,7 @@ void plotTrackEffThings(char *plotString, char *xTitle,char *mcDenom, char *mcNu
   doubleRatio->Draw("same");
   
 
+
   TLegend *leggy = new TLegend(0.6,0.2,0.88,0.5);
   leggy->SetFillColor(0);
   leggy->SetFillStyle(0);
@@ -98,6 +99,23 @@ void plotTrackEffThings(char *plotString, char *xTitle,char *mcDenom, char *mcNu
   leggy->AddEntry(ratioTrkFitPassMC,"MC","l");
   leggy->AddEntry(doubleRatio,"Data/MC","l");
   leggy->Draw("same");
-  
 
+
+  TCanvas *canOther = new TCanvas("canOther","canOther");
+  TH1D *finalDataMC = (TH1D*) histTrackEnTrkFitPassData->Clone("finalDataMC");
+  finalDataMC->Divide(histTrackEnTrkFitPassMC);
+  finalDataMC->SetLineColor(getNiceColour(3));
+  finalDataMC->SetTitle("");
+  finalDataMC->SetYTitle("Data/MC");
+  finalDataMC->SetXTitle(xTitle);
+  finalDataMC->Draw("");
+
+  TH1D *initialDataMC = (TH1D*) histTrackEnData->Clone("initialDataMC");
+  initialDataMC->Divide(histTrackEnMC);
+  initialDataMC->SetLineColor(getNiceColour(4));
+  initialDataMC->Draw("same");  
+  TLegend *leggy2 =  makeLegendBoxInBottomRightCorner(0.3,0.3);
+  leggy2->AddEntry(finalDataMC,"Data/MC All Cuts","l");
+  leggy2->AddEntry(initialDataMC,"Data/MC no coil+tfp","l");
+  leggy2->Draw("same");
 }

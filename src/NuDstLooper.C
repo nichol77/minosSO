@@ -1014,7 +1014,9 @@ void NuDstLooper::MakeTrackTree(char *fileName,int isData)
 
    Int_t cutId;
    TTree *trackTree = (TTree*) new TTree("trackTree","trackTree");
+   Float_t trkEnRJN;
    trackTree->Branch("trkEn",&trkEn,"trkEn/F");
+   trackTree->Branch("trkEnRJN",&trkEnRJN,"trkEnRJN/F");
    trackTree->Branch("trkEnRange",&trkEnRange,"trkEnRange/F");
    trackTree->Branch("trkEnCurv",&trkEnCurv,"trkEnCurv/F");
    trackTree->Branch("shwEn",&shwEn,"shwEn/F");
@@ -1050,6 +1052,10 @@ void NuDstLooper::MakeTrackTree(char *fileName,int isData)
 
 
       if(cutId==0 || cutId==CUT_ID_COIL_HOLE || cutId==CUT_ID_TRK_FIT_PASS || cutId==(CUT_ID_TRK_FIT_PASS+CUT_ID_COIL_HOLE)) {
+	trkEnRJN=trkEn;
+	if((xTrkEnd*xTrkEnd + yTrkEnd*yTrkEnd)<0.36) 
+	  trkEnRJN=trkEnCurv;
+
 	 //Then it is a CC candidate event
 	 trackTree->Fill();
       }

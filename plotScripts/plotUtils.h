@@ -15,12 +15,59 @@
 
 TH2D *getContours(TH2D *histSurface, int c68909599, double absVal=0);
 void subtractMinimum(TH2D*histCombi);
+void subtractValue(TH2D*histCombi,Double_t minVal);
 TH2D *convertToSin2Theta23(TH2D *histInput, char *histName) ;
 TH2D *convertToAndy(TH2D *histInput, char *histName) ;
 TH2D *convertToSin2Theta23Andy(TH2D *histInput, const char *histName, Int_t normalOrInverted) ;
 Double_t th2dEval(TH2D *histInput, Double_t xValue, Double_t yValue);
 TMarker *drawBestFit(TH2D *histCont);
 void getMinPoint(TH2D *histCont, Double_t &minX, Double_t &minY);
+TGraph *getXProfile(TH2D *histIn);
+TGraph *getYProfile(TH2D *histIn);
+
+
+TGraph *getXProfile(TH2D *histIn) {
+  Int_t numPoints=histIn->GetXaxis()->GetNbins();
+  Double_t *xValues= new Double_t[numPoints];
+  Double_t *llValues= new Double_t[numPoints];
+  
+  for(int binx=1;binx<=histIn->GetNbinsX();binx++) {
+    xValues[binx-1]=histIn->GetXaxis()->GetBinCenter(binx);
+    llValues[binx-1]=histIn->GetBinContent(binx,1);
+    for(int biny=1;biny<=histIn->GetNbinsY();biny++) {
+      Double_t value=histIn->GetBinContent(binx,biny);
+      if(value<llValues[binx-1]) llValues[binx-1]=value;
+    }
+  }
+    
+  TGraph *gr = new TGraph(numPoints,xValues,llValues);
+  delete [] xValues;
+  delete [] llValues;
+  return gr;
+}
+
+
+TGraph *getYProfile(TH2D *histIn) {
+  Int_t numPoints=histIn->GetYaxis()->GetNbins();
+  Double_t *yValues= new Double_t[numPoints];
+  Double_t *llValues= new Double_t[numPoints];
+  
+
+  for(int biny=1;biny<=histIn->GetNbinsY();biny++) {
+    yValues[biny-1]=TMath::Abs(histIn->GetYaxis()->GetBinCenter(biny));
+    llValues[biny-1]=histIn->GetBinContent(1,biny);
+    for(int binx=1;binx<=histIn->GetNbinsX();binx++) {
+      Double_t value=histIn->GetBinContent(binx,biny);
+      if(value<llValues[biny-1]) llValues[biny-1]=value;
+    }
+  }
+    
+  TGraph *gr = new TGraph(numPoints,yValues,llValues);
+  delete [] yValues;
+  delete [] llValues;
+  return gr;
+}
+
 
 
 TH2D *getContours(TH2D *histSurface, int c68909599, double absVal)
@@ -287,6 +334,19 @@ void subtractMinimum(TH2D*histCombi)
 	minValue=histCombi->GetBinContent(binx,biny);
     }    
   }     
+  
+  for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
+    for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {
+      histCombi->SetBinContent(binx,biny,histCombi->GetBinContent(binx,biny)-minValue);
+    }
+  }
+}
+
+
+
+void subtractValue(TH2D*histCombi,Double_t minValue)
+{
+
   
   for(int binx=1;binx<=histCombi->GetNbinsX();binx++) {
     for(int biny=1;biny<=histCombi->GetNbinsY();biny++) {

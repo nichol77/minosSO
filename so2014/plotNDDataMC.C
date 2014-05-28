@@ -1,10 +1,4 @@
-
-void divideByBinWidth(TH1D *hist) {
-  for(int bin=1;bin<=hist->GetNbinsX();bin++) {
-    hist->SetBinContent(bin,hist->GetBinContent(bin)/hist->GetBinWidth(bin));
-  }
-}
-
+#include "so2014.h"
 
 
 
@@ -36,15 +30,19 @@ void plotNDDataMCNQ() {
   inNDDataPot >> ndDataPot;
   Double_t ndMCPot=0; 
   inNDMCPot >> ndMCPot;
-
   Double_t potScaleMC=1e17/ndMCPot;
+  Double_t potScaleData=1e17/ndDataPot;
+
+  TGraphErrors *grRatio =getRatioGraphPoissonErrors(histEnergyNQData,histEnergyNQ,potScaleData,potScaleMC);
+  TGraphErrors *grRatio2 =getRatioGraphPoissonErrors(histEnergyNQData,histEnergyNQNoRw,potScaleData,potScaleMC);
+
   histEnergyNQNoRw->Scale(potScaleMC);
   histEnergyNQ->Scale(potScaleMC);
   histEnergyMC->Scale(potScaleMC);
   histEnergyMC2->Scale(0.37*potScaleMC);
   histEnergyFlux0->Scale(6);
 
-  Double_t potScaleData=1e17/ndDataPot;
+
   histEnergyNQNoRwData->Scale(potScaleData);
   histEnergyNQData->Scale(potScaleData);
 
@@ -89,23 +87,28 @@ void plotNDDataMCNQ() {
 
   leggy->Draw();
 
+
+
   TH1D *ratio = (TH1D*)histEnergyNQData->Clone("ratio");
   ratio->Divide(histEnergyNQ);
   TH1D *ratio2 = (TH1D*)histEnergyNQData->Clone("ratio2");
   ratio2->Divide(histEnergyNQNoRw);
 
-
+  TGraphErrors *grRatio3 = getSmoothedGraphFivePoint(grRatio2);
+  TH1D *ratio3 = convertGraphToHistogram(grRatio3);
+  
   can->cd(2);
+  ratio->SetLineColor(kRed);
+  ratio->Draw("");
   ratio->GetXaxis()->SetRangeUser(0,30);
   ratio->GetXaxis()->SetTitle("Reconstructed Neutrino Energy (GeV)");
-  ratio->GetYaxis()->SetRangeUser(0.7,1.3);
+  //  ratio->GetYaxis()->SetRangeUser(0.7,1.3);
   ratio->SetTitle("");
-  ratio->SetYTitle("Data / MC");
-  ratio->SetLineColor(kRed);
-  ratio->Draw();
+  ratio->GetYaxis()->SetTitle("Data / MC");
   ratio2->SetLineColor(kBlue);
   ratio2->Draw("same");
-
+  ratio3->SetLineColor(kGreen+2);
+  ratio3->Draw("same hist");
 }
 
 
